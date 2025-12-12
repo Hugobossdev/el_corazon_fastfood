@@ -153,7 +153,7 @@ class AppService extends ChangeNotifier {
 
       if (response.user != null) {
         // Load user profile from database
-        await _loadUserProfile(response!.user!.id);
+        await _loadUserProfile(response.user!.id);
 
         // Update online status for delivery staff
         if (_currentUser?.role == UserRole.delivery) {
@@ -204,7 +204,7 @@ class AppService extends ChangeNotifier {
 
       if (response.user != null) {
         // Load user profile from database
-        await _loadUserProfile(response!.user!.id);
+        await _loadUserProfile(response.user!.id);
 
         // Track registration event
         await _databaseService.trackEvent(

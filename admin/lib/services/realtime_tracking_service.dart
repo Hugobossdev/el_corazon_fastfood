@@ -81,7 +81,7 @@ class RealtimeTrackingService extends ChangeNotifier {
   Future<void> _updateLocation() async {
     try {
       _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       // Envoyer la position au serveur Supabase

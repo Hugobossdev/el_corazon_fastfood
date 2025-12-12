@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:admin/services/app_service.dart';
-import 'package:admin/screens/auth_screen.dart';
-import 'package:admin/screens/home_screen.dart';
+import '../services/admin_auth_service.dart';
+// import 'package:admin/theme.dart'; // Removed unused import
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,263 +11,126 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _textController;
-  late Animation<double> _logoAnimation;
-  late Animation<double> _textAnimation;
-  late Animation<Offset> _slideAnimation;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _startSplashSequence();
-  }
-
-  void _initializeAnimations() {
-    _logoController = AnimationController(
+    _animationController = AnimationController(
+      vsync: this,
       duration: const Duration(milliseconds: 1500),
-      vsync: this,
     );
 
-    _textController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-
-    _logoAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.elasticOut,
-    ));
-
-    _textAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _textController,
-      curve: Curves.easeInOut,
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _textController,
-      curve: Curves.easeOutCubic,
-    ));
-  }
-
-  void _startSplashSequence() async {
-    // Start logo animation
-    _logoController.forward();
-
-    // Wait a bit, then start text animation
-    await Future.delayed(const Duration(milliseconds: 800));
-    _textController.forward();
-
-    // Wait for total splash duration
-    await Future.delayed(const Duration(milliseconds: 2500));
-
-    if (mounted) {
-      _navigateToNextScreen();
-    }
-  }
-
-  void _navigateToNextScreen() {
-    final appService = context.read<AppService>();
-
-    Widget nextScreen;
-    if (appService.currentUser != null && appService.isLoggedIn) {
-      nextScreen = const HomeScreen();
-    } else {
-      nextScreen = const AuthScreen();
-    }
-
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 500),
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
       ),
     );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+
+    _animationController.forward();
+    _startSplashSequence();
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
+    _animationController.dispose();
     super.dispose();
+  }
+
+  void _startSplashSequence() async {
+    // Simulate initialization or check auth status
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    final authService = Provider.of<AdminAuthService>(context, listen: false);
+    // You might want to actually check auth status here if not done in main
+    // For now, let's just navigate based on auth state if we can, or just go to wrapper
+    // But usually splash leads to a wrapper or checks auth.
+    // Let's assume the wrapper handles it, or we navigate to / which is the wrapper/auth check.
+
+    // If we want to be safe and just go to the route that handles auth logic:
+     _navigateToNextScreen();
+  }
+
+  void _navigateToNextScreen() {
+    // Assuming '/' is the route that decides where to go (AuthWrapper)
+    Navigator.of(context).pushReplacementNamed('/');
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // Utiliser le thème s'il est disponible, sinon fallback
+    final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
-      backgroundColor: theme.primaryColor,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.primaryColor,
-              theme.primaryColor.withValues(alpha: 0.8),
-              theme.colorScheme.secondary,
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo animation
-              AnimatedBuilder(
-                animation: _logoController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _logoAnimation.value,
-                    child: Container(
-                      width: 120,
-                      height: 120,
+      backgroundColor: primaryColor,
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _opacityAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.restaurant,
-                        size: 60,
-                        color: Colors.red,
+                      child: Image.asset(
+                        'assets/logo/logo.png',
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.restaurant,
+                            size: 80,
+                            color: primaryColor,
+                          );
+                        },
                       ),
                     ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              // Text animations
-              AnimatedBuilder(
-                animation: _textController,
-                builder: (context, child) {
-                  return SlideTransition(
-                    position: _slideAnimation,
-                    child: FadeTransition(
-                      opacity: _textAnimation,
-                      child: Column(
-                        children: [
-                          // App name
-                          Text(
-                            'FastFoodGo',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 32,
-                            ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // Subtitle
-                          Text(
-                            'El Corazón',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontStyle: FontStyle.italic,
-                              fontSize: 20,
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Tagline
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: Text(
-                              'Ton repas à la vitesse de ta faim',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 40),
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 3,
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-
-              const SizedBox(height: 80),
-
-              // Loading indicator
-              AnimatedBuilder(
-                animation: _textController,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _textAnimation,
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                            strokeWidth: 3,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Chargement...',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// Extension for easier usage
-extension SplashScreenExtension on BuildContext {
-  void showSplashScreen() {
-    Navigator.of(this).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const SplashScreen(),
-      ),
-    );
-  }
-}

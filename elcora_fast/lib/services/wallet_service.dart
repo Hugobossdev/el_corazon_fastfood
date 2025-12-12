@@ -105,7 +105,8 @@ class WalletService extends ChangeNotifier {
         // Le solde pourrait être stocké dans une table wallet séparée
         // Pour l'instant, on garde la logique locale mais on peut utiliser wallet_balance si disponible
         _balance = (userData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-        _cashbackBalance = (userData['cashback_balance'] as num?)?.toDouble() ?? 0.0;
+        _cashbackBalance =
+            (userData['cashback_balance'] as num?)?.toDouble() ?? 0.0;
       }
 
       // Charger les transactions depuis Supabase
@@ -139,11 +140,14 @@ class WalletService extends ChangeNotifier {
         );
       }).toList();
 
-      debugPrint('✅ Loaded ${_transactions.length} wallet transactions from Supabase');
+      debugPrint(
+          '✅ Loaded ${_transactions.length} wallet transactions from Supabase',);
     } catch (e) {
       // Si la table n'existe pas, on continue avec une liste vide
-      if (e.toString().contains('PGRST205') || e.toString().contains('does not exist')) {
-        debugPrint('⚠️ wallet_transactions table does not exist, using empty list');
+      if (e.toString().contains('PGRST205') ||
+          e.toString().contains('does not exist')) {
+        debugPrint(
+            '⚠️ wallet_transactions table does not exist, using empty list',);
         _transactions = [];
       } else {
         debugPrint('❌ Error loading wallet transactions: $e');
@@ -171,8 +175,10 @@ class WalletService extends ChangeNotifier {
       await _updateWalletBalance();
     } catch (e) {
       // Si la table n'existe pas, on continue sans erreur
-      if (e.toString().contains('PGRST205') || e.toString().contains('does not exist')) {
-        debugPrint('⚠️ wallet_transactions table does not exist, transaction not saved');
+      if (e.toString().contains('PGRST205') ||
+          e.toString().contains('does not exist')) {
+        debugPrint(
+            '⚠️ wallet_transactions table does not exist, transaction not saved',);
       } else {
         debugPrint('❌ Error saving wallet transaction: $e');
       }
@@ -184,14 +190,11 @@ class WalletService extends ChangeNotifier {
     if (_currentUserId == null) return;
 
     try {
-      await _supabase
-          .from('users')
-          .update({
-            'wallet_balance': _balance,
-            'cashback_balance': _cashbackBalance,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', _currentUserId!);
+      await _supabase.from('users').update({
+        'wallet_balance': _balance,
+        'cashback_balance': _cashbackBalance,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', _currentUserId!);
     } catch (e) {
       debugPrint('⚠️ Error updating wallet balance: $e');
     }
@@ -247,7 +250,8 @@ class WalletService extends ChangeNotifier {
   Future<bool> rechargeWallet(double amount, String paymentMethod) async {
     try {
       await Future.delayed(
-          const Duration(seconds: 2),); // Simulate payment processing
+        const Duration(seconds: 2),
+      ); // Simulate payment processing
 
       _balance += amount;
 
@@ -260,10 +264,10 @@ class WalletService extends ChangeNotifier {
       );
 
       _transactions.insert(0, transaction);
-      
+
       // Sauvegarder la transaction dans Supabase
       await _saveTransaction(transaction);
-      
+
       notifyListeners();
 
       return true;
@@ -292,7 +296,7 @@ class WalletService extends ChangeNotifier {
       );
 
       _transactions.insert(0, transaction);
-      
+
       // Sauvegarder la transaction dans Supabase
       await _saveTransaction(transaction);
 
@@ -322,7 +326,7 @@ class WalletService extends ChangeNotifier {
     );
 
     _transactions.insert(0, cashbackTransaction);
-    
+
     // Sauvegarder la transaction cashback dans Supabase
     await _saveTransaction(cashbackTransaction);
   }
@@ -431,7 +435,6 @@ class WalletService extends ChangeNotifier {
         endDate: endDate,
         isActive: true,
         benefits: List<String>.from(selectedPlan['benefits']),
-        mealsUsedThisPeriod: 0,
       );
 
       // Add transaction
@@ -444,10 +447,10 @@ class WalletService extends ChangeNotifier {
       );
 
       _transactions.insert(0, transaction);
-      
+
       // Sauvegarder la transaction dans Supabase
       await _saveTransaction(transaction);
-      
+
       notifyListeners();
 
       return true;
@@ -553,7 +556,7 @@ class WalletService extends ChangeNotifier {
     if (_vipSubscription == null || !_vipSubscription!.isActive) return false;
     // Seulement VIP Premium a le repas gratuit
     if (_vipSubscription!.planName != 'VIP Premium') return false;
-    
+
     // 1 repas par mois (période)
     return _vipSubscription!.mealsUsedThisPeriod < 1;
   }
@@ -563,13 +566,10 @@ class WalletService extends ChangeNotifier {
     if (!isEligibleForFreeMeal || _currentUserId == null) return false;
 
     try {
-      await _supabase
-          .from('subscriptions')
-          .update({
-            'meals_used_this_period': _vipSubscription!.mealsUsedThisPeriod + 1,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', _vipSubscription!.id);
+      await _supabase.from('subscriptions').update({
+        'meals_used_this_period': _vipSubscription!.mealsUsedThisPeriod + 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', _vipSubscription!.id);
 
       // Mettre à jour l'état local
       _vipSubscription = _vipSubscription!.copyWith(
@@ -633,10 +633,10 @@ class WalletService extends ChangeNotifier {
     );
 
     _transactions.insert(0, transaction);
-    
+
     // Sauvegarder la transaction dans Supabase
     await _saveTransaction(transaction);
-    
+
     notifyListeners();
   }
 
@@ -658,10 +658,10 @@ class WalletService extends ChangeNotifier {
       );
 
       _transactions.insert(0, transaction);
-      
+
       // Sauvegarder la transaction dans Supabase
       await _saveTransaction(transaction);
-      
+
       notifyListeners();
 
       return true;
@@ -672,7 +672,7 @@ class WalletService extends ChangeNotifier {
   }
 }
 
-  // Extension for VIPSubscription copying
+// Extension for VIPSubscription copying
 extension VIPSubscriptionCopyWith on VIPSubscription {
   VIPSubscription copyWith({
     String? id,

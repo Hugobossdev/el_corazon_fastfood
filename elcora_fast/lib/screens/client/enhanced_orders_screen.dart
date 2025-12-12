@@ -30,11 +30,11 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Initialiser le service
     final orderRepository = SupabaseOrderRepository();
     _orderHistoryService = OrderHistoryService(orderRepository);
-    
+
     // Charger les commandes
     _loadOrders();
   }
@@ -48,7 +48,7 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
   Future<void> _loadOrders() async {
     final appService = Provider.of<AppService>(context, listen: false);
     final userId = appService.currentUser?.id;
-    
+
     if (userId != null) {
       await _orderHistoryService.loadOrders(userId);
     }
@@ -71,8 +71,8 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
         elevation: 0,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: AppColors.primaryGradient,
+            gradient: LinearGradient(
+              colors: AppColors.primaryGradient,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -141,9 +141,11 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
     return Consumer<AppService>(
       builder: (context, appService, child) {
         final activeOrders = appService.orders
-            .where((order) =>
-                order.status != OrderStatus.delivered &&
-                order.status != OrderStatus.cancelled,)
+            .where(
+              (order) =>
+                  order.status != OrderStatus.delivered &&
+                  order.status != OrderStatus.cancelled,
+            )
             .toList();
 
         if (activeOrders.isEmpty) {
@@ -220,13 +222,15 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
                   children: [
                     // En-tête de date
                     Padding(
-                      padding: EdgeInsets.only(bottom: 8, top: index > 0 ? 24 : 0),
+                      padding:
+                          EdgeInsets.only(bottom: 8, top: index > 0 ? 24 : 0),
                       child: Text(
                         dateKey,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textSecondary,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textSecondary,
+                                ),
                       ),
                     ),
 
@@ -249,7 +253,7 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
 
   Widget _buildOrderCard(Order order) {
     final dateFormat = DateFormat('dd/MM/yyyy à HH:mm');
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -269,9 +273,11 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
                 children: [
                   // Statut
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(order.status).withValues(alpha: 0.1),
+                      color:
+                          _getStatusColor(order.status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: _getStatusColor(order.status),
@@ -379,7 +385,8 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
                       const SizedBox(width: 8),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: () => context.navigateToDeliveryTracking(order.id),
+                        onPressed: () =>
+                            context.navigateToDeliveryTracking(order.id),
                         tooltip: 'Voir les détails',
                       ),
                     ],
@@ -489,7 +496,8 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
               label: Text(actionLabel),
               onPressed: onAction,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -503,9 +511,9 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
     try {
       final cartService = Provider.of<CartService>(context, listen: false);
       final appService = Provider.of<AppService>(context, listen: false);
-      
+
       int addedCount = 0;
-      
+
       // Ajouter chaque item de la commande au panier
       for (final orderItem in order.items) {
         try {
@@ -524,11 +532,7 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
                 price: orderItem.unitPrice,
                 description: '',
                 categoryId: 'temp-category',
-                category: null,
                 imageUrl: orderItem.menuItemImage,
-                isAvailable: true,
-                isVegetarian: false,
-                isVegan: false,
               );
             }
           } else {
@@ -539,28 +543,24 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
               price: orderItem.unitPrice,
               description: '',
               categoryId: 'temp-category',
-              category: null,
               imageUrl: orderItem.menuItemImage,
-              isAvailable: true,
-              isVegetarian: false,
-              isVegan: false,
             );
           }
-          
+
           // Ajouter au panier avec la quantité de la commande
           for (int i = 0; i < orderItem.quantity; i++) {
             cartService.addItem(
               menuItem,
-              quantity: 1,
               customizations: orderItem.customizations,
             );
             addedCount++;
           }
         } catch (e) {
-          debugPrint('Erreur lors de l\'ajout de l\'item ${orderItem.name}: $e');
+          debugPrint(
+              'Erreur lors de l\'ajout de l\'item ${orderItem.name}: $e',);
         }
       }
-      
+
       if (addedCount > 0 && mounted) {
         // Afficher un message de succès
         ScaffoldMessenger.of(context).showSnackBar(
@@ -576,7 +576,7 @@ class _EnhancedOrdersScreenState extends State<EnhancedOrdersScreen>
             ),
           ),
         );
-        
+
         // Naviguer vers le panier après un court délai
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
@@ -773,4 +773,3 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
     }
   }
 }
-

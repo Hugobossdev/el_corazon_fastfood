@@ -180,7 +180,8 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
     _orderSubscription?.unsubscribe();
 
     debugPrint(
-        '📡 Configuration des abonnements temps réel pour la commande: $_activeGroupOrderId');
+      '📡 Configuration des abonnements temps réel pour la commande: $_activeGroupOrderId',
+    );
 
     // Écouter les changements sur les items de la commande
     _orderItemsSubscription = _databaseService.supabase
@@ -196,7 +197,8 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
           ),
           callback: (payload) {
             debugPrint(
-                '🔄 Changement détecté sur les items: ${payload.eventType}');
+              '🔄 Changement détecté sur les items: ${payload.eventType}',
+            );
             _refreshOrderItems();
           },
         )
@@ -216,15 +218,18 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
           ),
           callback: (payload) {
             debugPrint(
-                '🔄 Changement détecté sur la commande: ${payload.eventType}');
+              '🔄 Changement détecté sur la commande: ${payload.eventType}',
+            );
             // Si le statut change, on pourrait vouloir recharger ou notifier
             if (payload.newRecord['status'] != payload.oldRecord['status']) {
               // Gérer le changement de statut (ex: confirmé)
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                      content: Text(
-                          'Statut de la commande mis à jour: ${payload.newRecord['status']}')),
+                    content: Text(
+                      'Statut de la commande mis à jour: ${payload.newRecord['status']}',
+                    ),
+                  ),
                 );
               }
             }
@@ -725,7 +730,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                         color: AppColors.textSecondary.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'Aucun item ne correspond aux filtres',
                         style: TextStyle(
                           color: AppColors.textSecondary,
@@ -1202,9 +1207,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
           category: item.category?.displayName ?? 'Non catégorisé',
           menuItemImage: item.imageUrl ?? '',
           customizations: customizations != null
-              ? Map<String, String>.from(customizations.map(
-                  (key, value) => MapEntry(key, value.toString()),
-                ))
+              ? Map<String, String>.from(
+                  customizations.map(
+                    (key, value) => MapEntry(key, value.toString()),
+                  ),
+                )
               : existingItem.customizations,
           notes: existingItem.notes,
         );
@@ -1224,9 +1231,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
           category: item.category?.displayName ?? 'Non catégorisé',
           menuItemImage: item.imageUrl ?? '',
           customizations: customizations != null
-              ? Map<String, String>.from(customizations.map(
-                  (key, value) => MapEntry(key, value.toString()),
-                ))
+              ? Map<String, String>.from(
+                  customizations.map(
+                    (key, value) => MapEntry(key, value.toString()),
+                  ),
+                )
               : {},
         );
         // Mise à jour locale optimiste
@@ -1429,7 +1438,8 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                    'Impossible de quitter le groupe (êtes-vous le créateur ?)'),
+                  'Impossible de quitter le groupe (êtes-vous le créateur ?)',
+                ),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -1540,7 +1550,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
       }).toList();
 
       if (context.mounted) {
-        context.navigateToSharedPayment(
+        await context.navigateToSharedPayment(
           groupId: _currentGroup!['id'],
           orderId: orderId,
           totalAmount: total,

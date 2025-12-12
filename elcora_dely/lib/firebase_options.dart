@@ -41,46 +41,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForTesting',
-    appId: '1:123456789:web:abcdef123456',
-    messagingSenderId: '123456789',
-    projectId: 'fastfoodgo-deliver',
-    authDomain: 'fastfoodgo-deliver.firebaseapp.com',
-    storageBucket: 'fastfoodgo-deliver.appspot.com',
+    apiKey: 'AIzaSyBRNJoH-V7kVeG0wYarAxQ3brRP-h450aE',
+    appId: '1:78549410636:web:17a8ad55c75fb1f149e5e9',
+    messagingSenderId: '78549410636',
+    projectId: 'elcorazon-a3df0',
+    authDomain: 'elcorazon-a3df0.firebaseapp.com',
+    storageBucket: 'elcorazon-a3df0.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForTesting',
-    appId: '1:123456789:android:abcdef123456',
-    messagingSenderId: '123456789',
-    projectId: 'fastfoodgo-deliver',
-    storageBucket: 'fastfoodgo-deliver.appspot.com',
+    apiKey: 'AIzaSyD3sOcim7KjLCAVGkJPaWYkEmbcrozjWws',
+    appId: '1:78549410636:android:d3e11784dc8ec84e49e5e9',
+    messagingSenderId: '78549410636',
+    projectId: 'elcorazon-a3df0',
+    storageBucket: 'elcorazon-a3df0.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForTesting',
-    appId: '1:123456789:ios:abcdef123456',
-    messagingSenderId: '123456789',
-    projectId: 'fastfoodgo-deliver',
-    storageBucket: 'fastfoodgo-deliver.appspot.com',
-    iosBundleId: 'com.fastfoodgo.deliver',
+    apiKey: 'AIzaSyD_IuJX_LiOJiE7SnbhIDvPxdir0s-9X-0',
+    appId: '1:78549410636:ios:92957e9be87faa7a49e5e9',
+    messagingSenderId: '78549410636',
+    projectId: 'elcorazon-a3df0',
+    storageBucket: 'elcorazon-a3df0.firebasestorage.app',
+    iosBundleId: 'com.example.elcoraDely',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForTesting',
-    appId: '1:123456789:macos:abcdef123456',
-    messagingSenderId: '123456789',
-    projectId: 'fastfoodgo-deliver',
-    storageBucket: 'fastfoodgo-deliver.appspot.com',
-    iosBundleId: 'com.fastfoodgo.deliver',
+    apiKey: 'AIzaSyD_IuJX_LiOJiE7SnbhIDvPxdir0s-9X-0',
+    appId: '1:78549410636:ios:92957e9be87faa7a49e5e9',
+    messagingSenderId: '78549410636',
+    projectId: 'elcorazon-a3df0',
+    storageBucket: 'elcorazon-a3df0.firebasestorage.app',
+    iosBundleId: 'com.example.elcoraDely',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForTesting',
-    appId: '1:123456789:windows:abcdef123456',
-    messagingSenderId: '123456789',
-    projectId: 'fastfoodgo-deliver',
-    authDomain: 'fastfoodgo-deliver.firebaseapp.com',
-    storageBucket: 'fastfoodgo-deliver.appspot.com',
+    apiKey: 'AIzaSyBRNJoH-V7kVeG0wYarAxQ3brRP-h450aE',
+    appId: '1:78549410636:web:7d440a99764dc28e49e5e9',
+    messagingSenderId: '78549410636',
+    projectId: 'elcorazon-a3df0',
+    authDomain: 'elcorazon-a3df0.firebaseapp.com',
+    storageBucket: 'elcorazon-a3df0.firebasestorage.app',
   );
+
 }

@@ -10,6 +10,7 @@ import 'package:elcora_fast/widgets/enhanced_app_bar_actions.dart';
 // import '../../widgets/enhanced_animations.dart'; // Supprimé
 import 'package:elcora_fast/services/design_enhancement_service.dart';
 import 'package:elcora_fast/screens/client/widgets/quick_actions_widget.dart';
+import 'package:elcora_fast/navigation/navigation_service.dart';
 import 'package:elcora_fast/screens/client/widgets/home_section_header.dart';
 import 'package:elcora_fast/screens/client/widgets/home_highlight_card.dart';
 
@@ -29,13 +30,11 @@ class ClientHomeScreen extends StatefulWidget {
 class _ClientHomeScreenState extends State<ClientHomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _mainController;
-  late AnimationController _floatingController;
   late PageController _highlightController;
 
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _floatingAnimation;
   int _currentHighlightPage = 0;
 
   @override
@@ -54,44 +53,35 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _mainController,
-      curve: Curves.easeInOut,
-    ),);
+    ).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _mainController,
-      curve: Curves.easeOutCubic,
-    ),);
+    ).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     _scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _mainController,
-      curve: Curves.elasticOut,
-    ),);
-
-    // Animation flottante pour les éléments décoratifs
-    _floatingController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
+    ).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: Curves.elasticOut,
+      ),
     );
-
-    _floatingAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _floatingController,
-      curve: Curves.easeInOut,
-    ),);
 
     // Démarrer les animations
     _mainController.forward();
-    _floatingController.repeat(reverse: true);
 
     _highlightController = PageController(viewportFraction: 0.88);
     _highlightController.addListener(() {
@@ -105,7 +95,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
   @override
   void dispose() {
     _mainController.dispose();
-    _floatingController.dispose();
     _highlightController.dispose();
     super.dispose();
   }
@@ -138,81 +127,83 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
   }
 
   Widget _buildEnhancedAppBar() {
-    final theme = Theme.of(context);
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 120,
       pinned: true,
       backgroundColor: AppColors.primary,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          'El Corazón',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+        titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Petit logo dans l'AppBar quand réduit
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                'lib/assets/logo/logo.png',
+                height: 24,
+                width: 24,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'El Corazón',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
         ),
         background: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.secondary,
-                AppColors.tertiary,
-              ],
-            ),
+            color: AppColors.primary, // Fond rouge uni pour plus de propreté
           ),
           child: Stack(
             children: [
-              // Éléments décoratifs animés
+              // Motif de fond subtil (cercles)
               Positioned(
-                top: 20,
-                right: 20,
-                child: AnimatedBuilder(
-                  animation: _floatingAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 10 * _floatingAnimation.value),
-                      child: Icon(
-                        Icons.restaurant,
-                        size: 40,
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                    );
-                  },
+                top: -50,
+                right: -50,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
               Positioned(
-                bottom: 20,
+                bottom: -30,
                 left: 20,
-                child: AnimatedBuilder(
-                  animation: _floatingAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, -10 * _floatingAnimation.value),
-                      child: Icon(
-                        Icons.local_pizza,
-                        size: 30,
-                        color: Colors.white.withValues(alpha: 0.2),
-                      ),
-                    );
-                  },
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
               // Message de bienvenue
               Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
+                bottom: 60,
+                left: 16,
+                right: 16,
                 child: Consumer<AppService>(
                   builder: (context, appService, child) {
                     return Text(
-                      'Bonjour ${appService.currentUser?.name ?? 'Client'}!',
+                      'Bonjour ${appService.currentUser?.name ?? 'Gourmand'} !',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     );
@@ -234,28 +225,36 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
     final highlightCards = [
       HomeHighlightCard(
         title: 'Menu Signature',
-        description:
-            'Laissez-vous surprendre par nos créations du chef, préparées chaque jour.',
-        colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+        description: 'Découvrez nos créations exclusives du chef.',
+        colors: const [
+          AppColors.primary,
+          AppColors.primaryDark
+        ], // Rouge marque
         illustration:
-            const Icon(Icons.restaurant, color: Colors.white, size: 72),
+            const Icon(Icons.restaurant_menu, color: Colors.white, size: 64),
         onPressed: () => widget.onNavigateToTab?.call(1),
       ),
       HomeHighlightCard(
-        title: 'Gâteaux personnalisés',
-        description:
-            'Designs uniques, message personnalisé, livraison planifiée.',
-        colors: const [Color(0xFFF48FB1), Color(0xFF880E4F)],
-        illustration: const Icon(Icons.cake, color: Colors.white, size: 72),
-        onPressed: () => context.navigateToCakeOrder(),
+        title: 'Livraison Rapide',
+        description: 'Vos plats préférés livrés en un éclair.',
+        colors: const [AppColors.secondary, Color(0xFFFFC107)], // Jaune marque
+        illustration:
+            const Icon(Icons.delivery_dining, color: Colors.white, size: 64),
+        onPressed: () {},
       ),
       HomeHighlightCard(
-        title: 'Offres fidélité',
-        description: 'Échangez vos points pour des remises exceptionnelles.',
-        colors: const [Color(0xFF42A5F5), Color(0xFF0D47A1)],
-        illustration:
-            const Icon(Icons.card_giftcard, color: Colors.white, size: 72),
-        onPressed: () => context.navigateToRewards(),
+        title: 'Récompenses',
+        description: 'Cumulez des points à chaque commande.',
+        colors: const [Color(0xFF2E7D32), Color(0xFF1B5E20)], // Vert succès
+        illustration: const Icon(Icons.stars, color: Colors.white, size: 64),
+        onPressed: () {
+          final appService = Provider.of<AppService>(context, listen: false);
+          if (appService.isLoggedIn) {
+            context.navigateToRewards();
+          } else {
+            NavigationService.navigateToAuth(context);
+          }
+        },
       ),
     ];
 
@@ -410,7 +409,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                             Provider.of<CartService>(context, listen: false)
                                 .addItem(item);
                             context.showSuccessMessage(
-                                '${item.name} ajouté au panier !',);
+                              '${item.name} ajouté au panier !',
+                            );
                           },
                         ),
                       );
@@ -489,16 +489,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                                 Provider.of<CartService>(context, listen: false)
                                     .addItem(item);
                                 context.showSuccessMessage(
-                                    '${item.name} ajouté au panier !',);
+                                  '${item.name} ajouté au panier !',
+                                );
                               },
                               onFavoriteTap: () {
                                 favoritesService.toggleFavorite(item);
                                 if (isFavorite) {
                                   context.showSuccessMessage(
-                                      '${item.name} retiré des favoris',);
+                                    '${item.name} retiré des favoris',
+                                  );
                                 } else {
                                   context.showSuccessMessage(
-                                      '${item.name} ajouté aux favoris',);
+                                    '${item.name} ajouté aux favoris',
+                                  );
                                 }
                               },
                               isFavorite: isFavorite,
@@ -578,12 +581,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                             Provider.of<CartService>(context, listen: false)
                                 .addItem(item);
                             context.showSuccessMessage(
-                                '${item.name} ajouté au panier !',);
+                              '${item.name} ajouté au panier !',
+                            );
                           },
                           onFavoriteTap: () {
                             favoritesService.removeFromFavorites(item);
                             context.showSuccessMessage(
-                                '${item.name} retiré des favoris',);
+                              '${item.name} retiré des favoris',
+                            );
                           },
                           isFavorite: true,
                         ),

@@ -10,6 +10,8 @@ import 'package:elcora_fast/screens/client/client_home_screen.dart';
 import 'package:elcora_fast/screens/client/menu_screen.dart';
 import 'package:elcora_fast/screens/client/orders_screen.dart';
 import 'package:elcora_fast/screens/client/profile_screen.dart';
+import 'package:elcora_fast/screens/guest_welcome_screen.dart';
+import 'package:elcora_fast/screens/guest_contact_screen.dart';
 
 /// Écran de navigation principal pour les clients
 class MainNavigationScreen extends StatefulWidget {
@@ -65,32 +67,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppService>(
       builder: (context, appService, child) {
-        // Vérifier si l'utilisateur est connecté
-        if (!appService.isLoggedIn || appService.currentUser == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            NavigationService.navigateToAuth(context);
-          });
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+        // Mode Invité ou Utilisateur Connecté
+        // On permet l'accès même si pas connecté
 
-        final user = appService.currentUser!;
-
-        // Vérifier que l'utilisateur est un client
-        if (user.role != UserRole.client) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            // Pour l'instant, rediriger vers l'écran d'authentification
-            // TODO: Implémenter les interfaces admin et delivery
-            NavigationService.navigateToAuth(context);
-          });
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+        // Si connecté, vérifier le rôle
+        if (appService.isLoggedIn && appService.currentUser != null) {
+          final user = appService.currentUser!;
+          // Vérifier que l'utilisateur est un client
+          if (user.role != UserRole.client) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // Pour l'instant, rediriger vers l'écran d'authentification pour les rôles non-client
+              // TODO: Implémenter les interfaces admin et delivery
+              NavigationService.navigateToAuth(context);
+            });
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
         }
 
         return PopScope(
@@ -120,21 +115,47 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       });
                     },
                     children: [
-                      ClientHomeScreen(
-                        onNavigateToTab: (index) {
-                          setState(() {
-                            _currentIndex = index;
-                          });
-                          _pageController.animateToPage(
-                            index,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                      ),
+                      // Onglet 0: Accueil
+                      if (appService.isLoggedIn)
+                        ClientHomeScreen(
+                          onNavigateToTab: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                            });
+                            _pageController.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        )
+                      else
+                        GuestWelcomeScreen(
+                          onNavigateToTab: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                            });
+                            _pageController.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                      
+                      // Onglet 1: Menu (Commun)
                       const MenuScreen(),
-                      const OrdersScreen(),
-                      const ProfileScreen(),
+                      
+                      // Onglets suivants dépendent du statut
+                      if (appService.isLoggedIn) ...[
+                        // Onglet 2 (Loggé): Commandes
+                        const OrdersScreen(),
+                        // Onglet 3 (Loggé): Profil
+                        const ProfileScreen(),
+                      ] else ...[
+                        // Onglet 2 (Invité): Contact
+                        const GuestContactScreen(),
+                      ],
                     ],
                   ),
                 ),
@@ -148,6 +169,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Widget _buildBottomNavigationBar(AppService appService) {
+    final bool isLoggedIn = appService.isLoggedIn;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
@@ -182,20 +205,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 index: 1,
                 isActive: _currentIndex == 1,
               ),
-              _buildNavItem(
-                icon: Icons.receipt_long_outlined,
-                activeIcon: Icons.receipt_long_rounded,
-                label: 'Commandes',
-                index: 2,
-                isActive: _currentIndex == 2,
-              ),
-              _buildNavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person_rounded,
-                label: 'Profil',
-                index: 3,
-                isActive: _currentIndex == 3,
-              ),
+              if (isLoggedIn) ...[
+                _buildNavItem(
+                  icon: Icons.receipt_long_outlined,
+                  activeIcon: Icons.receipt_long_rounded,
+                  label: 'Commandes',
+                  index: 2,
+                  isActive: _currentIndex == 2,
+                ),
+                _buildNavItem(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person_rounded,
+                  label: 'Profil',
+                  index: 3,
+                  isActive: _currentIndex == 3,
+                ),
+              ] else ...[
+                _buildNavItem(
+                  icon: Icons.contact_support_outlined,
+                  activeIcon: Icons.contact_support_rounded,
+                  label: 'Contact',
+                  index: 2,
+                  isActive: _currentIndex == 2,
+                ),
+              ],
             ],
           ),
         ),

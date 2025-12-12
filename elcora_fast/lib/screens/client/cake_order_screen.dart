@@ -10,6 +10,7 @@ import 'package:elcora_fast/services/offline_sync_service.dart';
 import 'package:elcora_fast/widgets/custom_button.dart';
 import 'package:elcora_fast/utils/price_formatter.dart';
 import 'package:elcora_fast/theme.dart';
+import 'package:elcora_fast/widgets/navigation_helper.dart';
 
 enum CakeDeliveryMethod { delivery, pickup }
 
@@ -34,10 +35,9 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
   bool _isSubmitting = false;
   CakeDeliveryMethod _deliveryMethod = CakeDeliveryMethod.delivery;
 
-  final Map<String, int> _categorySelectionLimits = const {
-    'filling': 2,
-    'decoration': 3,
-  };
+  // 🗑️ SUPPRESSION: Plus besoin des contraintes en dur ici, on utilise celles du service
+  // final Map<String, int> _categorySelectionLimits = const { ... };
+  // static const Set<String> _singleChoiceCategories = { ... };
 
   // Data loaded from Supabase
   List<MenuItem> _readyCakes = [];
@@ -46,14 +46,15 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
   bool _isLoading = true;
   String? _error;
 
-  static const Set<String> _singleChoiceCategories = {
+  // 🗑️ SUPPRESSION: Plus besoin de cette liste en dur
+  /* static const Set<String> _singleChoiceCategories = {
     'shape',
     'size',
     'flavor',
     'tiers',
     'icing',
     'dietary',
-  };
+  }; */
 
   @override
   void initState() {
@@ -279,6 +280,12 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Commander un gâteau'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () => context.navigateToCart(),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -405,23 +412,37 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          PriceFormatter.format(cake.price),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.w600,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            PriceFormatter.format(cake.price),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        FilledButton.icon(
-                          icon: const Icon(Icons.add_shopping_cart_outlined),
-                          label: const Text('Commander'),
-                          onPressed: () => _handleReadyCakeOrder(cake),
-                        ),
-                      ],
-                    ),
+                          Row(
+                            children: [
+                              TextButton.icon(
+                                icon: const Icon(Icons.build_circle_outlined, size: 20),
+                                label: const Text('Personnaliser'),
+                                onPressed: () {
+                                  // Pré-sélectionner ce gâteau pour la personnalisation
+                                  _tabController.animateTo(1);
+                                  // TODO: Implémenter la logique pour charger ce modèle spécifique comme base
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.icon(
+                                icon: const Icon(Icons.add_shopping_cart_outlined),
+                                label: const Text('Commander'),
+                                onPressed: () => _handleReadyCakeOrder(cake),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -490,9 +511,10 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                 final options = entry.value;
                 final selectedIds =
                     customization.selections[category] ?? <String>[];
-                final isSingleChoice =
-                    _singleChoiceCategories.contains(category);
-
+                
+                // ✅ Utilisation dynamique des contraintes
+                final constraint = service.getCategoryConstraint(category);
+                
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildCategorySection(
@@ -500,7 +522,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                     category: category,
                     options: options,
                     selectedIds: selectedIds,
-                    singleChoice: isSingleChoice,
+                    constraint: constraint, // On passe l'objet complet
                     service: service,
                   ),
                 );
@@ -806,19 +828,46 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     required String category,
     required List<CustomizationOption> options,
     required List<String> selectedIds,
-    required bool singleChoice,
+    required CategoryConstraint constraint, // ✅ Paramètre mis à jour
     required CustomizationService service,
   }) {
     final title = service.translateCategory(category);
-    final maxSelections = _categorySelectionLimits[category];
+    final maxSelections = constraint.maxSelections;
+    
+    // ✅ UI améliorée : Indicateur (Requis) ou (Max X)
+    String subtitle = '';
+    Color? subtitleColor;
+    
+    if (constraint.isRequired) {
+      subtitle = '(Requis)';
+      subtitleColor = theme.colorScheme.error;
+    } else if (!constraint.isSingleChoice && maxSelections < 99) {
+      final remaining = maxSelections - selectedIds.length;
+      subtitle = '(Max $maxSelections - Reste: $remaining)';
+      subtitleColor = remaining == 0 ? theme.colorScheme.error : theme.colorScheme.secondary;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (subtitle.isNotEmpty)
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: subtitleColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -830,7 +879,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                 ? ''
                 : ' (${option.priceModifier > 0 ? '+' : ''}${PriceFormatter.format(option.priceModifier)})';
 
-            if (singleChoice) {
+            if (constraint.isSingleChoice) {
               return ChoiceChip(
                 label: Text('${option.name}$priceSuffix'),
                 selected: isSelected,
@@ -862,9 +911,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               onSelected: (selected) {
-                if (selected &&
-                    maxSelections != null &&
-                    selectedIds.length >= maxSelections) {
+                if (selected && selectedIds.length >= maxSelections) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1044,8 +1091,13 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
               ),
             ],
           ),
+          action: SnackBarAction(
+            label: 'Voir le panier',
+            textColor: Colors.white,
+            onPressed: () => context.navigateToCart(),
+          ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {
@@ -1080,29 +1132,19 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
           .map((e) => e.toString())
           .toList();
       
-      // Vérifier les options requises pour les gâteaux
-      final requiredCategories = ['shape', 'size', 'flavor', 'tiers', 'icing', 'dietary'];
-      final missingRequired = <String>[];
+      // 🗑️ SUPPRESSION: La validation est maintenant faite dynamiquement par le service via validateCustomization
+      // final requiredCategories = ['shape', 'size', 'flavor', 'tiers', 'icing', 'dietary'];
+      // final missingRequired = <String>[];
       
-      for (final category in requiredCategories) {
-        final selections = customization.selections[category] ?? [];
-        if (selections.isEmpty) {
-          final categoryName = service.translateCategory(category);
-          missingRequired.add(categoryName);
-        }
-      }
+      // for (final category in requiredCategories) { ... }
       
-      if (missingRequired.isNotEmpty) {
-        _showError(
-          'Veuillez sélectionner les options requises : ${missingRequired.join(', ')}',
-        );
-        setState(() => _isSubmitting = false);
-        return;
-      }
+      // if (missingRequired.isNotEmpty) { ... }
       
       // Pour les autres erreurs, afficher un avertissement
       if (errors.isNotEmpty) {
-        debugPrint('⚠️ Avertissements de validation: ${errors.join('\n')}');
+        _showError(errors.first); // On affiche la première erreur (qui peut être un champ requis manquant)
+        setState(() => _isSubmitting = false);
+        return;
       }
     }
 
@@ -1134,7 +1176,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     if (difference.inHours < 24) {
       final hoursNeeded = 24 - difference.inHours;
       _showError(
-          'Pour un gâteau personnalisé, veuillez commander au moins 24 heures à l\'avance. Il reste ${hoursNeeded} heure(s) avant la date sélectionnée.',);
+          'Pour un gâteau personnalisé, veuillez commander au moins 24 heures à l\'avance. Il reste $hoursNeeded heure(s) avant la date sélectionnée.',);
       setState(() => _isSubmitting = false);
       return;
     }
@@ -1250,8 +1292,13 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
               ),
             ],
           ),
+          action: SnackBarAction(
+            label: 'Voir le panier',
+            textColor: Colors.white,
+            onPressed: () => context.navigateToCart(),
+          ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         ),
       );
 
@@ -1367,9 +1414,12 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     if (mounted && isSelected) {
       final customization = service.getCurrentCustomization(_customizationId);
       final selectedCount = (customization?.selections[category] ?? []).length;
-      final maxSelections = _categorySelectionLimits[category];
       
-      if (maxSelections != null && selectedCount >= maxSelections) {
+      // ✅ Utilisation de la contrainte dynamique
+      final constraint = service.getCategoryConstraint(category);
+      final maxSelections = constraint.maxSelections;
+      
+      if (selectedCount >= maxSelections && maxSelections < 99) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

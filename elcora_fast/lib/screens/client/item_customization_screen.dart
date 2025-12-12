@@ -25,23 +25,9 @@ class _ItemCustomizationScreenState extends State<ItemCustomizationScreen> {
   late String _menuItemId;
   final TextEditingController _instructionsController = TextEditingController();
 
-  static const Set<String> _singleChoiceCategories = {
-    'size',
-    'cooking',
-    'shape',
-    'tiers',
-    'flavor',
-    'icing',
-    'dietary',
-  };
-
-  static const Map<String, int> _categorySelectionLimits = {
-    'extra': 3,
-    'ingredient': 5,
-    'sauce': 2,
-    'filling': 2,
-    'decoration': 3,
-  };
+  // 🗑️ SUPPRESSION des constantes en dur
+  // static const Set<String> _singleChoiceCategories = { ... };
+  // static const Map<String, int> _categorySelectionLimits = { ... };
 
   @override
   void initState() {
@@ -341,11 +327,14 @@ class _ItemCustomizationScreenState extends State<ItemCustomizationScreen> {
     final theme = Theme.of(context);
     final customization = service.getCurrentCustomization(_sessionId);
     final selectedIds = customization?.selections[category] ?? <String>[];
-    final isSingleChoice = _singleChoiceCategories.contains(category);
-    final maxSelections = _categorySelectionLimits[category];
+    
+    // ✅ Utilisation des contraintes dynamiques
+    final constraint = service.getCategoryConstraint(category);
+    final isSingleChoice = constraint.isSingleChoice;
+    final maxSelections = constraint.maxSelections;
     
     // Vérifier si la catégorie a des options requises
-    final hasRequiredOptions = options.any((opt) => opt.isRequired || opt.isDefault);
+    final hasRequiredOptions = options.any((opt) => opt.isRequired || opt.isDefault) || constraint.isRequired;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -381,7 +370,7 @@ class _ItemCustomizationScreenState extends State<ItemCustomizationScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          if (maxSelections != null)
+          if (!isSingleChoice && maxSelections < 99)
             Text(
               'Sélection max : $maxSelections',
               style: theme.textTheme.bodySmall?.copyWith(

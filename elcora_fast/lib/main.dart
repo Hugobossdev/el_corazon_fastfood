@@ -52,7 +52,7 @@ void main() async {
 
   try {
     // Load environment variables from .env file
-    await dotenv.load(fileName: '.env');
+    await dotenv.load();
     debugPrint('✅ Environment variables loaded');
 
     // Initialize only essential services at startup for better performance

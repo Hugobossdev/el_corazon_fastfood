@@ -17,7 +17,7 @@ class SupabaseMenuRepository implements MenuRepository {
     try {
       // Debug log to verify Supabase URL being used
       debugPrint(
-          '🔍 Fetching menu items using Supabase URL: ${ApiConfig.supabaseUrl}');
+          '🔍 Fetching menu items using Supabase URL: ${ApiConfig.supabaseUrl}',);
 
       const fieldsString = '''
         id, name, description, price, image_url, category_id,
@@ -86,7 +86,7 @@ class SupabaseMenuRepository implements MenuRepository {
       final response = await _supabase
           .from('menu_categories')
           .select(
-              'id, name, display_name, emoji, description, sort_order, is_active')
+              'id, name, display_name, emoji, description, sort_order, is_active',)
           .eq('is_active', true)
           .order('sort_order');
 
@@ -151,7 +151,7 @@ class SupabaseMenuRepository implements MenuRepository {
     } catch (e) {
       debugPrint('❌ Error in SupabaseMenuRepository.getPopularMenuItems: $e');
       throw Exception(
-          'Erreur lors de la récupération des items populaires: $e');
+          'Erreur lors de la récupération des items populaires: $e',);
     }
   }
 }

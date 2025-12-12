@@ -335,7 +335,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                '${PriceFormatter.format(order.total)}',
+                PriceFormatter.format(order.total),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -716,7 +716,7 @@ class _DeliveryDetailsSheetState extends State<DeliveryDetailsSheet> {
             ),
             _buildInfoRow(
               'Montant',
-              '${PriceFormatter.format(widget.order.total)}',
+              PriceFormatter.format(widget.order.total),
             ),
             _buildInfoRow(
               'Paiement',
@@ -864,7 +864,7 @@ class _DeliveryDetailsSheetState extends State<DeliveryDetailsSheet> {
                       ),
                     ),
                     Text(
-                      '${PriceFormatter.format(item.totalPrice)}',
+                      PriceFormatter.format(item.totalPrice),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],

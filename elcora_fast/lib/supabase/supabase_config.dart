@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../config/api_config.dart';
+import 'package:elcora_fast/config/api_config.dart';
 
 class SupabaseConfig {
   static Future<void> initialize() async {

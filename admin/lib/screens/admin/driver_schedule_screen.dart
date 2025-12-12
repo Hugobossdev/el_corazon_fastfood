@@ -127,7 +127,7 @@ class _DriverScheduleScreenState extends State<DriverScheduleScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
@@ -506,8 +506,8 @@ class _DriverScheduleScreenState extends State<DriverScheduleScreen> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Row(
-                    children: const [
+                  content: const Row(
+                    children: [
                       Icon(Icons.check_circle, color: Colors.white),
                       SizedBox(width: 12),
                       Text('Horaires mis à jour avec succès'),

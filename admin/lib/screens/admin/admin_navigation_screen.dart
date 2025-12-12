@@ -406,7 +406,7 @@ class _AdminNavigationScreenState extends State<AdminNavigationScreen> {
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.primary,
-                  theme.colorScheme.secondary,
+                  theme.colorScheme.primaryContainer,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -420,10 +420,19 @@ class _AdminNavigationScreenState extends State<AdminNavigationScreen> {
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.admin_panel_settings_rounded,
-              color: Colors.white,
-              size: 24,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/logo/logo.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: theme.colorScheme.onPrimary,
+                    size: 24,
+                  );
+                },
+              ),
             ),
           ),
           if (_isSidebarExpanded) ...[

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "78549410636",
+    "project_id": "elcorazon-a3df0",
+    "storage_bucket": "elcorazon-a3df0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78549410636:android:d3e11784dc8ec84e49e5e9",
+        "android_client_info": {
+          "package_name": "com.example.elcora_dely"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3sOcim7KjLCAVGkJPaWYkEmbcrozjWws"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

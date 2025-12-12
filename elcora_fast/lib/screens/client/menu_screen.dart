@@ -149,9 +149,10 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
       expandedHeight: 120,
       pinned: true,
       backgroundColor: AppColors.primary,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         title: const Text(
-          'Menu El Corazón',
+          'Menu',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -159,27 +160,20 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
           ),
         ),
         background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.secondary,
-                AppColors.tertiary,
-              ],
-            ),
-          ),
+          color: AppColors.primary,
           child: Stack(
             children: [
-              // Éléments décoratifs animés
+              // Éléments décoratifs discrets
               Positioned(
-                top: 20,
-                right: 20,
-                child: Icon(
-                  Icons.restaurant_menu,
-                  size: 40,
-                  color: Colors.white.withValues(alpha: 0.3),
+                top: -20,
+                right: -20,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
             ],

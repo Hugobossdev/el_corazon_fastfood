@@ -196,7 +196,7 @@ class AppRouter {
           builder: (_) => EnhancedItemCustomizationScreen(
             item: args?['item'] as MenuItem,
             onAddToCart: args?['onAddToCart'] as Function(
-                MenuItem, int, Map<String, dynamic>)?,
+                MenuItem, int, Map<String, dynamic>,)?,
           ),
           settings: settings,
         );

@@ -151,7 +151,7 @@ class ChatService extends ChangeNotifier {
       final response = await _supabase
           .from('chat_rooms')
           .select(
-              '*, client:users!chat_rooms_client_id_fkey(id, name, profile_image), delivery:users!chat_rooms_delivery_id_fkey(id, name, profile_image)')
+              '*, client:users!chat_rooms_client_id_fkey(id, name, profile_image), delivery:users!chat_rooms_delivery_id_fkey(id, name, profile_image)',)
           .eq('order_id', orderId)
           .maybeSingle();
 
@@ -179,7 +179,7 @@ class ChatService extends ChangeNotifier {
       final response = await _supabase
           .from('chat_messages')
           .select(
-              '*, sender:users!chat_messages_sender_id_fkey(id, name, profile_image)')
+              '*, sender:users!chat_messages_sender_id_fkey(id, name, profile_image)',)
           .eq('room_id', roomId)
           .order('created_at', ascending: true);
 

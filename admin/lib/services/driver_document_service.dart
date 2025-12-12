@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import '../models/driver_document.dart' as model;
 import '../models/document_history.dart';
@@ -202,15 +201,13 @@ class DriverDocumentService extends ChangeNotifier {
 
       // 1. Upload file to Storage
       final fileExt = path.extension(file.path);
-      final fileName = '${driverId}/${type.dbCode}_${DateTime.now().millisecondsSinceEpoch}$fileExt';
-      
-      await _supabase.storage
-          .from('driver_documents')
-          .upload(fileName, file);
+      final fileName =
+          '$driverId/${type.dbCode}_${DateTime.now().millisecondsSinceEpoch}$fileExt';
 
-      final documentUrl = _supabase.storage
-          .from('driver_documents')
-          .getPublicUrl(fileName);
+      await _supabase.storage.from('driver_documents').upload(fileName, file);
+
+      final documentUrl =
+          _supabase.storage.from('driver_documents').getPublicUrl(fileName);
 
       // 2. Insert/Update record in DB
       final existingDoc = await getDocumentByType(driverId, type);
@@ -248,13 +245,14 @@ class DriverDocumentService extends ChangeNotifier {
   }
 
   /// Mettre à jour la date d'expiration
-  Future<bool> updateDocumentExpiry(String documentId, DateTime expiryDate) async {
+  Future<bool> updateDocumentExpiry(
+      String documentId, DateTime expiryDate) async {
     try {
       await _supabase.from('driver_documents').update({
         'expiry_date': expiryDate.toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', documentId);
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -276,9 +274,13 @@ class DriverDocumentService extends ChangeNotifier {
       }).eq('id', documentId);
 
       // Vérifier si tous les documents sont approuvés pour activer le compte
-      final doc = await _supabase.from('driver_documents').select('driver_id').eq('id', documentId).single();
+      final doc = await _supabase
+          .from('driver_documents')
+          .select('driver_id')
+          .eq('id', documentId)
+          .single();
       final driverId = doc['driver_id'] as String;
-      
+
       await _checkAndActivateAccount(driverId);
 
       return true;
@@ -304,11 +306,15 @@ class DriverDocumentService extends ChangeNotifier {
       }).eq('id', documentId);
 
       // Désactiver le compte si un document requis est rejeté
-      final doc = await _supabase.from('driver_documents').select('driver_id').eq('id', documentId).single();
+      final doc = await _supabase
+          .from('driver_documents')
+          .select('driver_id')
+          .eq('id', documentId)
+          .single();
       final driverId = doc['driver_id'] as String;
-      
+
       await _deactivateAccount(driverId);
-      
+
       // Envoyer une notification au livreur
       await _sendDocumentRejectionNotification(driverId, reason);
 
@@ -331,9 +337,13 @@ class DriverDocumentService extends ChangeNotifier {
       }).eq('id', documentId);
 
       // Désactiver le compte
-      final doc = await _supabase.from('driver_documents').select('driver_id').eq('id', documentId).single();
+      final doc = await _supabase
+          .from('driver_documents')
+          .select('driver_id')
+          .eq('id', documentId)
+          .single();
       final driverId = doc['driver_id'] as String;
-      
+
       await _deactivateAccount(driverId);
 
       return true;
@@ -385,7 +395,7 @@ class DriverDocumentService extends ChangeNotifier {
         'is_active': true,
         'status': 'offline', // Prêt à travailler mais hors ligne
       }).eq('id', driverId);
-      
+
       // Envoyer notification
       await _sendAccountActivatedNotification(driverId);
     }
@@ -400,10 +410,15 @@ class DriverDocumentService extends ChangeNotifier {
   }
 
   /// Envoyer notification de rejet
-  Future<void> _sendDocumentRejectionNotification(String driverId, String reason) async {
+  Future<void> _sendDocumentRejectionNotification(
+      String driverId, String reason) async {
     try {
       // Récupérer le user_id associé au driver
-      final driver = await _supabase.from('drivers').select('user_id').eq('id', driverId).single();
+      final driver = await _supabase
+          .from('drivers')
+          .select('user_id')
+          .eq('id', driverId)
+          .single();
       final userId = driver['user_id'];
 
       if (userId != null) {
@@ -424,14 +439,19 @@ class DriverDocumentService extends ChangeNotifier {
   Future<void> _sendAccountActivatedNotification(String driverId) async {
     try {
       // Récupérer le user_id associé au driver
-      final driver = await _supabase.from('drivers').select('user_id').eq('id', driverId).single();
+      final driver = await _supabase
+          .from('drivers')
+          .select('user_id')
+          .eq('id', driverId)
+          .single();
       final userId = driver['user_id'];
 
       if (userId != null) {
         await _supabase.from('notifications').insert({
           'user_id': userId,
           'title': 'Compte activé',
-          'message': 'Tous vos documents ont été validés. Vous pouvez maintenant commencer à livrer !',
+          'message':
+              'Tous vos documents ont été validés. Vous pouvez maintenant commencer à livrer !',
           'type': 'account_activated',
           'is_read': false,
         });
@@ -448,12 +468,12 @@ class DriverDocumentService extends ChangeNotifier {
       notifyListeners();
 
       // Get file path from DB first to delete from storage
-      final doc = await _supabase
+      await _supabase
           .from('driver_documents')
           .select('document_url')
           .eq('id', documentId)
           .single();
-          
+
       // Extract file path from URL if needed or store path in DB
       // For now just deleting DB record
 
@@ -472,7 +492,7 @@ class DriverDocumentService extends ChangeNotifier {
   Future<void> checkExpiredDocuments() async {
     try {
       final now = DateTime.now();
-      
+
       // Find expired documents that are not marked as expired yet
       final expiredDocs = await _supabase
           .from('driver_documents')

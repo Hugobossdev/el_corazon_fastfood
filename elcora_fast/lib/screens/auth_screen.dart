@@ -10,6 +10,7 @@ import 'package:elcora_fast/navigation/app_router.dart';
 import 'package:elcora_fast/widgets/navigation_error_handler.dart';
 import 'package:elcora_fast/theme.dart';
 import 'package:elcora_fast/utils/design_constants.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -25,6 +26,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
@@ -68,6 +70,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -112,15 +115,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget _buildLogo() {
     return Column(
       children: [
+        // Utiliser le logo.png directement qui contient déjà le branding
         Container(
-          width: 130,
-          height: 130,
+          width: 150,
+          height: 150,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFFFFF), Color(0xFFFFF8F0)],
-            ),
+            color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
@@ -137,66 +137,33 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               ),
             ],
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.primaryGradient,
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 3,
-              ),
-            ),
-            child: const Icon(
-              Icons.restaurant_rounded,
-              size: 65,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFFFF8F0)],
-          ).createShader(bounds),
-          child: Text(
-            'El Corazón',
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 32,
-              letterSpacing: 1.2,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
+          child: ClipOval(
+            child: Image.asset(
+              'lib/assets/logo/logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: AppColors.primaryGradient,
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: 3,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.restaurant_rounded,
+                    size: 65,
+                    color: Colors.white,
+                  ),
+                );
+              },
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Text(
-            'Ton repas à la vitesse de ta faim',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ),
+        // Plus besoin du texte et slogan car ils sont dans le logo
       ],
     );
   }
@@ -230,17 +197,52 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _phoneController,
-                  label: 'Téléphone',
-                  icon: Icons.phone,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Veuillez entrer votre téléphone';
-                    }
-                    return null;
-                  },
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: DesignConstants.shadowSoft,
+                  ),
+                  child: IntlPhoneField(
+                    controller: _phoneController,
+                    decoration: InputDecoration(
+                      labelText: 'Téléphone',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: AppColors.textTertiary.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: AppColors.textTertiary.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
+                    ),
+                    initialCountryCode: 'CI',
+                    languageCode: 'fr',
+                    onChanged: (phone) {
+                      // print(phone.completeNumber);
+                    },
+                    onCountryChanged: (country) {
+                      // print('Country changed to: ' + country.name);
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -272,6 +274,24 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   return null;
                 },
               ),
+              if (!_isLogin) ...[
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirmer le mot de passe',
+                  icon: Icons.lock_outline,
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez confirmer votre mot de passe';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Les mots de passe ne correspondent pas';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 28),
               _buildAuthButton(),
               const SizedBox(height: 20),

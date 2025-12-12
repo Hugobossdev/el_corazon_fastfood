@@ -5,6 +5,7 @@ import 'package:elcora_fast/services/app_service.dart';
 import 'package:elcora_fast/services/wallet_service.dart';
 import 'package:elcora_fast/models/cart_item.dart' as cart_item;
 import 'package:elcora_fast/models/promo_code.dart';
+import 'package:elcora_fast/navigation/navigation_service.dart';
 import 'package:elcora_fast/theme.dart';
 import 'package:elcora_fast/widgets/navigation_helper.dart';
 // import '../../widgets/enhanced_animations.dart'; // Supprimé
@@ -237,7 +238,7 @@ class CartScreen extends StatelessWidget {
                       Switch(
                         value: cartService.isFreeMealApplied,
                         onChanged: (value) => cartService.toggleFreeMeal(),
-                        activeColor: Colors.amber,
+                        activeThumbColor: Colors.amber,
                       ),
                     ],
                   ),
@@ -272,8 +273,19 @@ class CartScreen extends StatelessWidget {
           DesignEnhancementService.createEnhancedButton(
             text: 'Commander maintenant',
             icon: Icons.shopping_bag,
-            onPressed: () {
-              context.navigateToCheckout();
+            onPressed: () async {
+              final appService = Provider.of<AppService>(context, listen: false);
+              if (!appService.isLoggedIn) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Veuillez vous connecter pour valider votre commande'),
+                    backgroundColor: AppColors.primary,
+                  ),
+                );
+                NavigationService.navigateToAuth(context);
+              } else {
+                await context.navigateToCheckout();
+              }
             },
             backgroundColor: AppColors.primary,
             isFullWidth: true,
@@ -327,8 +339,8 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _openPromoCodes(BuildContext context, CartService cartService) {
-    context.navigateToPromoCodes(
+  Future<void> _openPromoCodes(BuildContext context, CartService cartService) async {
+    await context.navigateToPromoCodes(
       cartService.subtotal + cartService.deliveryFee,
       (PromoCode promoCode, double discount) {
         cartService.applyPromoDiscount(

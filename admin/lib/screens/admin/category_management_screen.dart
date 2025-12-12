@@ -133,8 +133,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCategoryDialog(context),
-        child: const Icon(Icons.add),
         tooltip: 'Nouvelle catégorie',
+        child: const Icon(Icons.add),
       ),
     );
   }

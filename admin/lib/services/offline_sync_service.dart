@@ -100,9 +100,9 @@ class OfflineSyncService extends ChangeNotifier {
 
   /// Initialise la surveillance de connectivité
   Future<void> _initializeConnectivity() async {
-    _connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
+    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
       final wasOffline = !_isOnline;
-      _isOnline = result != ConnectivityResult.none;
+      _isOnline = results.any((result) => result != ConnectivityResult.none);
 
       if (wasOffline && _isOnline) {
         _syncPendingOperations();
@@ -115,8 +115,8 @@ class OfflineSyncService extends ChangeNotifier {
     });
 
     // Vérifier l'état initial
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = result != ConnectivityResult.none;
+    final results = await _connectivity.checkConnectivity();
+    _isOnline = results.any((result) => result != ConnectivityResult.none);
     notifyListeners();
   }
 

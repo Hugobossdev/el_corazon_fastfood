@@ -51,29 +51,12 @@ class ElCorazonLogo extends StatelessWidget {
             );
           },
         ),
+        // Si le logo contient déjà le texte, on ne l'affiche pas ici
+        // ou seulement si explicitement demandé et que l'image est juste l'icône
         if (showText) ...[
-          SizedBox(height: size * 0.15),
-          // Texte du logo
-          Text(
-            'El corazon',
-            style: TextStyle(
-              fontSize: size * 0.25,
-              fontWeight: FontWeight.bold,
-              color: logoColor,
-              letterSpacing: 1.5,
-            ),
-          ),
-          SizedBox(height: size * 0.05),
-          Text(
-            'L\'amour, notre ingrédient secret',
-            style: TextStyle(
-              fontSize: size * 0.1,
-              color: logoColor.withValues(alpha: 0.7),
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          // Si l'image logo.png contient déjà le texte, ce bloc est redondant.
+          // On le garde commenté ou on le supprime si on est sûr que logo.png a le texte.
+          // Pour l'instant, on suppose que logo.png est le logo complet.
         ],
       ],
     );

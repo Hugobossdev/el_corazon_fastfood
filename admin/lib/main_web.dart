@@ -60,7 +60,7 @@ void main() async {
 
   // Charger les variables d'environnement depuis le fichier .env
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: '.env');
     if (kDebugMode) {
       print('✅ Fichier .env chargé pour le web');
     }

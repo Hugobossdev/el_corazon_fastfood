@@ -88,7 +88,6 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
             CircleAvatar(
@@ -112,11 +111,7 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
             ),
             const SizedBox(height: 32),
             RatingBar.builder(
-              initialRating: 0,
               minRating: 1,
-              direction: Axis.horizontal,
-              allowHalfRating: false,
-              itemCount: 5,
               itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
               itemBuilder: (context, _) => const Icon(
                 Icons.star,

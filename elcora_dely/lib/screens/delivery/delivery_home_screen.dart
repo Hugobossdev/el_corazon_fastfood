@@ -731,7 +731,7 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
                 ),
                 Flexible(
                   child: Text(
-                    '${PriceFormatter.format(order.total)}',
+                    PriceFormatter.format(order.total),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -876,7 +876,7 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
                 ),
                 Flexible(
                   child: Text(
-                    '${PriceFormatter.format(order.total)}',
+                    PriceFormatter.format(order.total),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

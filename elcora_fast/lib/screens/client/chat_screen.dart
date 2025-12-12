@@ -120,7 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.driverName ?? 'Livreur',
-                style: const TextStyle(fontSize: 16)),
+                style: const TextStyle(fontSize: 16),),
             Text(
               'Commande #${widget.orderId.substring(0, 8)}',
               style:
@@ -141,12 +141,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
                             return Center(
-                                child: Text('Erreur: ${snapshot.error}'));
+                                child: Text('Erreur: ${snapshot.error}'),);
                           }
 
                           if (!snapshot.hasData) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                                child: CircularProgressIndicator(),);
                           }
 
                           final messages = snapshot.data!;
@@ -154,7 +154,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (messages.isEmpty) {
                             return const Center(
                                 child: Text(
-                                    'Aucun message. Commencez la discussion !'));
+                                    'Aucun message. Commencez la discussion !',),);
                           }
 
                           WidgetsBinding.instance

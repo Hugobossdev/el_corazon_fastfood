@@ -22,7 +22,8 @@ class DesignEnhancementService {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor, // Let Theme handle default
-        foregroundColor: textColor, // Let Theme handle default
+        foregroundColor: textColor ??
+            (backgroundColor == AppColors.primary ? Colors.white : null),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

@@ -102,7 +102,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen>
                   _updateDateRange();
                 });
               },
-              style: ButtonStyle(
+              style: const ButtonStyle(
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

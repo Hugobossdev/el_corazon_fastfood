@@ -260,13 +260,14 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         final pushNotifications = unreadOnly
             ? notificationService.getUnreadNotifications()
             : notificationService.notifications;
-        
+
         final filteredPushNotifications = pushNotifications.where((pn) {
           // Ignorer les notifications sans ID valide (UUID)
           return _isValidUuid(pn.id);
         }).toList();
 
-        List<NotificationModel> notifications = filteredPushNotifications.map((pn) {
+        List<NotificationModel> notifications =
+            filteredPushNotifications.map((pn) {
           return NotificationModel(
             id: pn.id.hashCode,
             title: pn.title,
@@ -322,9 +323,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   }
 
   Widget _buildNotificationCard(
-      NotificationModel notification, NotificationDatabaseService service,) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    NotificationModel notification,
+    NotificationDatabaseService service,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: DesignEnhancementService.createEnhancedCard(
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
@@ -383,7 +386,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   if (!notification.isRead)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2,),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10),
@@ -454,26 +459,24 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           ),
           const SizedBox(height: 20),
           Text(
-              unreadOnly
-                  ? 'Aucune notification non lue'
-                  : 'Aucune notification',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+            unreadOnly ? 'Aucune notification non lue' : 'Aucune notification',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 8),
-            Text(
-              unreadOnly
-                  ? 'Vous êtes à jour !'
-                  : 'Vous recevrez des notifications ici',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            unreadOnly
+                ? 'Vous êtes à jour !'
+                : 'Vous recevrez des notifications ici',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
             ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -517,8 +520,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     }
   }
 
-  void _handleNotificationAction(String action, NotificationModel notification,
-      NotificationDatabaseService service,) {
+  void _handleNotificationAction(
+    String action,
+    NotificationModel notification,
+    NotificationDatabaseService service,
+  ) {
     switch (action) {
       case 'mark_read':
         final backendId = notification.backendId;

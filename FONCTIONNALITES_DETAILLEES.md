@@ -119,3 +119,6 @@ Cœur logistique de l'application permettant le suivi en temps réel.
 *   **Géocodage** : Conversion automatique des adresses textuelles en coordonnées Lat/Lng via Google Maps API (ou service interne `GeocodingService`) pour calculer les itinéraires et frais de livraison précis.
 *   **Estimation** : Calcul du temps de trajet estimé (`calculateTravelTime`) pour informer le client.
 
+
+
+

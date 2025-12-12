@@ -46,7 +46,7 @@ class LocationService extends ChangeNotifier {
       if (!hasPermission) return null;
 
       _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       notifyListeners();
       return _currentPosition;

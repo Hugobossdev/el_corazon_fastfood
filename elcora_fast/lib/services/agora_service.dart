@@ -68,7 +68,7 @@ class AgoraService extends ChangeNotifier {
             notifyListeners();
           },
           onUserOffline: (RtcConnection connection, int remoteUid,
-              UserOfflineReasonType reason) {
+              UserOfflineReasonType reason,) {
             debugPrint('AgoraService: Remote user offline: $remoteUid');
             _remoteUid = null;
             _remoteUidController.add(null);

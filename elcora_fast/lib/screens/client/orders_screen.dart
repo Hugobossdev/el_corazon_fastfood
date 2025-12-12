@@ -4,6 +4,8 @@ import 'package:elcora_fast/services/app_service.dart';
 import 'package:elcora_fast/models/order.dart';
 import 'package:elcora_fast/widgets/delivery_status_card.dart';
 import 'package:elcora_fast/widgets/navigation_helper.dart';
+import 'package:elcora_fast/navigation/navigation_service.dart';
+import 'package:elcora_fast/services/design_enhancement_service.dart';
 import 'package:elcora_fast/theme.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -29,15 +31,62 @@ class _OrdersScreenState extends State<OrdersScreen>
     super.dispose();
   }
 
-  void _navigateToDeliveryTracking(Order order) {
-    context.navigateToDeliveryTracking(order.id);
+  Future<void> _navigateToDeliveryTracking(Order order) async {
+    await context.navigateToDeliveryTracking(order.id);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    return Consumer<AppService>(
+      builder: (context, appService, child) {
+        if (!appService.isLoggedIn) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              title: const Text('Mes Commandes'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      size: 80,
+                      color: AppColors.textSecondary.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Connectez-vous pour voir vos commandes',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 32),
+                    DesignEnhancementService.createEnhancedButton(
+                      text: 'Se connecter',
+                      icon: Icons.login,
+                      onPressed: () {
+                        NavigationService.navigateToAuth(context);
+                      },
+                      backgroundColor: AppColors.primary,
+                      isFullWidth: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
         title: const Text(
           'Mes Commandes',
           style: TextStyle(
@@ -122,6 +171,8 @@ class _OrdersScreenState extends State<OrdersScreen>
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildActiveOrders() {
@@ -175,9 +226,9 @@ class _OrdersScreenState extends State<OrdersScreen>
             title: 'Aucune commande passée',
             subtitle: 'Votre historique de commandes apparaîtra ici',
             actionLabel: 'Passer ma première commande',
-            onAction: () {
+            onAction: () async {
               // Navigate to menu
-              context.navigateToMenu();
+              await context.navigateToMenu();
             },
           );
         }

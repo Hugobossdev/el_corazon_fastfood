@@ -86,16 +86,14 @@ class SupabaseRealtimeService extends ChangeNotifier {
             ),
             callback: (payload) {
               final data = payload.newRecord;
-              if (data is Map<String, dynamic>) {
-                try {
-                  final order = Order.fromMap(data);
-                  _trackedOrders[order.id] = order;
-                  _orderUpdatesController.add(order);
-                } catch (e) {
-                  debugPrint(
-                    'SupabaseRealtimeService: error parsing order - $e',
-                  );
-                }
+              try {
+                final order = Order.fromMap(data);
+                _trackedOrders[order.id] = order;
+                _orderUpdatesController.add(order);
+              } catch (e) {
+                debugPrint(
+                  'SupabaseRealtimeService: error parsing order - $e',
+                );
               }
               notifyListeners();
             },
@@ -221,11 +219,15 @@ class SupabaseRealtimeService extends ChangeNotifier {
     Map<String, dynamic> orderData,
   ) async {
     try {
-      final response =
-          await _supabase.from('orders').insert(orderData).select('id').single();
+      final response = await _supabase
+          .from('orders')
+          .insert(orderData)
+          .select('id')
+          .single();
       return response['id']?.toString();
     } catch (e) {
-      debugPrint('SupabaseRealtimeService: createOrderWithGeocoding error - $e');
+      debugPrint(
+          'SupabaseRealtimeService: createOrderWithGeocoding error - $e',);
       return null;
     }
   }
@@ -279,4 +281,3 @@ class SupabaseRealtimeService extends ChangeNotifier {
     super.dispose();
   }
 }
-

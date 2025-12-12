@@ -351,7 +351,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
         ),
         _buildStatCard(
           'Note Moyenne',
-          '${(stats['average_rating'] as num).toStringAsFixed(1)}',
+          (stats['average_rating'] as num).toStringAsFixed(1),
           Icons.star,
           Colors.amber,
         ),

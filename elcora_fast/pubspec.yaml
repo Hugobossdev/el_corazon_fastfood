@@ -52,6 +52,7 @@ dependencies:
   # UI components
   badges: ^3.1.2
   flutter_rating_bar: ^4.0.1
+  intl_phone_field: ^3.2.0
   
   # Notifications
   flutter_local_notifications: ^19.5.0
@@ -74,7 +75,7 @@ dependencies:
   # Security
   flutter_secure_storage: ^10.0.0-beta.5
   jwt_decoder: ^2.0.1
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.0
   
   # Fonts
   google_fonts: ^6.2.1

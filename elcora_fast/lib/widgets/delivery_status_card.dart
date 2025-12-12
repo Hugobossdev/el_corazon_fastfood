@@ -113,8 +113,11 @@ class DeliveryStatusCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.local_shipping,
-                      size: 16, color: Colors.orange),
+                  const Icon(
+                    Icons.local_shipping,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'En cours de livraison',

@@ -18,98 +18,44 @@ class ElCorazonLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final logoColor = color ?? Theme.of(context).colorScheme.primary;
 
-    Widget logo = Column(
+    final Widget logo = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Icône principale avec moto de livraison
-        Container(
+        // Logo image
+        Image.asset(
+          'assets/logo/logo.png',
           width: size,
-          height: size * 0.7,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(size * 0.2),
-            boxShadow: [
-              BoxShadow(
-                color: logoColor.withValues(alpha: 0.3),
-                blurRadius: size * 0.1,
-                offset: Offset(0, size * 0.05),
-              ),
-            ],
-          ),
-          // IMPORTANT: Stack avec fit: StackFit.expand pour garantir des contraintes
-          child: Stack(
-            fit: StackFit.expand,
-            alignment: Alignment.center,
-            children: [
-              // Arrière-plan stylisé
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(size * 0.2),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.yellow.withValues(alpha: 0.3),
-                        Colors.orange.withValues(alpha: 0.3),
-                      ],
-                    ),
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: logoColor,
+                borderRadius: BorderRadius.circular(size * 0.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: logoColor.withValues(alpha: 0.3),
+                    blurRadius: size * 0.1,
+                    offset: Offset(0, size * 0.05),
                   ),
-                ),
+                ],
               ),
-              // Icône de livraison
-              Icon(
-                Icons.delivery_dining,
-                size: size * 0.4,
+              child: Icon(
+                Icons.restaurant_rounded,
+                size: size * 0.5,
                 color: Colors.white,
               ),
-              // Cœur en overlay - IMPORTANT: Container avec taille explicite
-              Positioned(
-                top: size * 0.1,
-                right: size * 0.1,
-                child: Container(
-                  width: size * 0.15,
-                  height: size * 0.15,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.favorite,
-                    size: size * 0.15,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
+        // Si le logo contient déjà le texte, on ne l'affiche pas ici
+        // ou seulement si explicitement demandé et que l'image est juste l'icône
         if (showText) ...[
-          SizedBox(height: size * 0.15),
-          // Texte du logo
-          Text(
-            'EL CORAZÓN',
-            style: TextStyle(
-              fontSize: size * 0.25,
-              fontWeight: FontWeight.bold,
-              color: logoColor,
-              letterSpacing: 2,
-              fontFamily: 'Montserrat',
-            ),
-          ),
-          SizedBox(height: size * 0.05),
-          Text(
-            'L\'AMOUR, NOTRE INGRÉDIENT SECRET',
-            style: TextStyle(
-              fontSize: size * 0.1,
-              color: logoColor.withValues(alpha: 0.7),
-              fontWeight: FontWeight.w500,
-              letterSpacing: 1,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          // Si l'image logo.png contient déjà le texte, ce bloc est redondant.
+          // On le garde commenté ou on le supprime si on est sûr que logo.png a le texte.
+          // Pour l'instant, on suppose que logo.png est le logo complet.
         ],
       ],
     );
@@ -141,8 +87,8 @@ class ElCorazonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onLogoTap;
 
   const ElCorazonAppBar({
-    super.key,
     required this.title,
+    super.key,
     this.actions,
     this.showLogo = true,
     this.onLogoTap,
@@ -154,55 +100,20 @@ class ElCorazonAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           if (showLogo) ...[
-            // IMPORTANT: Utiliser Material + InkWell au lieu de GestureDetector
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                // Callback appelé après que le widget soit complètement rendu
-                onTap: onLogoTap,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  // Container avec width et height définis garantit une taille définie
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  // Stack avec contraintes de taille définies (width: 40, height: 40)
-                  child: Stack(
-                    // fit: StackFit.expand pour que le Stack prenne toute la taille du parent
-                    fit: StackFit.expand,
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(
-                        Icons.delivery_dining,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                      // IMPORTANT: Positioned avec Container ayant taille explicite
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.favorite,
-                            size: 8,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            GestureDetector(
+              onTap: onLogoTap,
+              child: Image.asset(
+                'assets/logo/logo.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.restaurant_rounded,
+                    size: 24,
+                    color: Colors.white,
+                  );
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -240,12 +151,7 @@ class ElCorazonSplashLogo extends StatefulWidget {
 class _ElCorazonSplashLogoState extends State<ElCorazonSplashLogo>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
-  late AnimationController _rotationController;
-  late AnimationController _heartController;
-
   late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
-  late Animation<double> _heartAnimation;
 
   @override
   void initState() {
@@ -255,120 +161,44 @@ class _ElCorazonSplashLogoState extends State<ElCorazonSplashLogo>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    _rotationController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-    _heartController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
-
-    _rotationAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _heartAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.3,
-    ).animate(CurvedAnimation(
-      parent: _heartController,
-      curve: Curves.easeInOut,
-    ));
-
-    // Démarrer les animations
+    // Démarrer l'animation
     _scaleController.forward();
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _rotationController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      _heartController.repeat(reverse: true);
-    });
   }
 
   @override
   void dispose() {
     _scaleController.dispose();
-    _rotationController.dispose();
-    _heartController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge(
-          [_scaleAnimation, _rotationAnimation, _heartAnimation]),
+      animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo principal animé
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.secondary,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Rotation de la moto de livraison
-                    Transform.rotate(
-                      angle: _rotationAnimation.value * 0.1,
-                      child: const Icon(
-                        Icons.delivery_dining,
-                        size: 60,
-                        color: Colors.white,
-                      ),
-                    ),
-                    // Cœur animé
-                    Positioned(
-                      top: 15,
-                      right: 15,
-                      child: Transform.scale(
-                        scale: _heartAnimation.value,
-                        child: Icon(
-                          Icons.favorite,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Logo image
+              Image.asset(
+                'assets/logo/logo.png',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.restaurant_rounded,
+                    size: 80,
+                    color: Colors.white,
+                  );
+                },
               ),
               const SizedBox(height: 20),
               // Texte du logo
@@ -386,10 +216,9 @@ class _ElCorazonSplashLogoState extends State<ElCorazonSplashLogo>
                 'L\'AMOUR, NOTRE INGRÉDIENT SECRET',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                   letterSpacing: 1.5,
                 ),

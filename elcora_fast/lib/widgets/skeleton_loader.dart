@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// Widget de skeleton loader pour améliorer l'UX pendant le chargement
@@ -9,7 +11,9 @@ class SkeletonLoader extends StatefulWidget {
   final Color? highlightColor;
 
   const SkeletonLoader({
-    required this.width, required this.height, super.key,
+    required this.width,
+    required this.height,
+    super.key,
     this.borderRadius,
     this.baseColor,
     this.highlightColor,
@@ -30,7 +34,8 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
-    )..repeat();
+    );
+    unawaited(_controller.repeat());
 
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -126,7 +131,8 @@ class ListSkeletonLoader extends StatelessWidget {
   final Widget Function(BuildContext, int) itemBuilder;
 
   const ListSkeletonLoader({
-    required this.itemBuilder, super.key,
+    required this.itemBuilder,
+    super.key,
     this.itemCount = 5,
   });
 
@@ -197,4 +203,3 @@ class GridSkeletonLoader extends StatelessWidget {
     );
   }
 }
-

@@ -167,6 +167,22 @@ class ItemCustomization {
   }
 }
 
+class CategoryConstraint {
+  final String category;
+  final int minSelections;
+  final int maxSelections;
+  final bool isRequired;
+  final bool isSingleChoice;
+
+  const CategoryConstraint({
+    required this.category,
+    this.minSelections = 0,
+    this.maxSelections = 99,
+    this.isRequired = false,
+    this.isSingleChoice = false,
+  });
+}
+
 class CustomizationService extends ChangeNotifier {
   static final CustomizationService _instance =
       CustomizationService._internal();
@@ -178,6 +194,28 @@ class CustomizationService extends ChangeNotifier {
   Map<String, List<CustomizationOption>> _itemOptions = {};
   Map<String, List<CustomizationOption>> _defaultOptionsByName = {};
   final Map<String, ItemCustomization> _currentCustomizations = {};
+  
+  // ✅ Centralisation des contraintes par catégorie
+  final Map<String, CategoryConstraint> _categoryConstraints = {
+    // Gâteaux - Choix unique requis
+    'shape': const CategoryConstraint(category: 'shape', isSingleChoice: true, isRequired: true),
+    'size': const CategoryConstraint(category: 'size', isSingleChoice: true, isRequired: true),
+    'flavor': const CategoryConstraint(category: 'flavor', isSingleChoice: true, isRequired: true),
+    'tiers': const CategoryConstraint(category: 'tiers', isSingleChoice: true, isRequired: true),
+    'icing': const CategoryConstraint(category: 'icing', isSingleChoice: true, isRequired: true),
+    'dietary': const CategoryConstraint(category: 'dietary', isSingleChoice: true, isRequired: true),
+    
+    // Gâteaux - Choix multiples limités
+    'filling': const CategoryConstraint(category: 'filling', maxSelections: 2),
+    'decoration': const CategoryConstraint(category: 'decoration', maxSelections: 3),
+    
+    // Burgers/Pizzas - Standards
+    'cooking': const CategoryConstraint(category: 'cooking', isSingleChoice: true, isRequired: true),
+    'sauce': const CategoryConstraint(category: 'sauce', maxSelections: 2),
+    'extra': const CategoryConstraint(category: 'extra', maxSelections: 5),
+    'ingredient': const CategoryConstraint(category: 'ingredient', maxSelections: 5),
+  };
+
   bool _isInitialized = false;
 
   bool get isInitialized => _isInitialized;
@@ -896,6 +934,12 @@ class CustomizationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Get constraint for a category
+  CategoryConstraint getCategoryConstraint(String category) {
+    return _categoryConstraints[category] ?? 
+        CategoryConstraint(category: category, maxSelections: 99);
+  }
+
   // Validate customization for an item
   Map<String, dynamic> validateCustomization(
       String sessionId, String menuItemName,) {
@@ -920,18 +964,32 @@ class CustomizationService extends ChangeNotifier {
           (optionsByCategory[option.category] ?? [])..add(option);
     }
 
-    // Check if required categories have selections
+    // ✅ Validation centralisée basée sur _categoryConstraints
+    // 1. Vérifier les catégories présentes dans les options disponibles
     for (final category in optionsByCategory.keys) {
-      final categoryOptions = optionsByCategory[category]!;
-      final hasRequiredOptions = categoryOptions
-          .any((option) => option.isRequired || option.isDefault);
+      final constraint = getCategoryConstraint(category);
+      final selectedOptions = customization.selections[category] ?? [];
+      final selectedCount = selectedOptions.length;
 
-      if (hasRequiredOptions) {
-        final selectedOptions = customization.selections[category] ?? [];
-        if (selectedOptions.isEmpty) {
-          errors.add(
-              'Veuillez sélectionner au moins une option pour ${_translateCategory(category)}',);
+      // Vérifier si requis
+      if (constraint.isRequired && selectedCount == 0) {
+        // Double vérification : est-ce que cette catégorie a vraiment des options disponibles ?
+        if (optionsByCategory[category]!.isNotEmpty) {
+           errors.add(
+              'Veuillez sélectionner une option pour ${_translateCategory(category)}',);
         }
+      }
+
+      // Vérifier max selections (pour multi-choice)
+      if (!constraint.isSingleChoice && selectedCount > constraint.maxSelections) {
+        errors.add(
+            'Maximum ${constraint.maxSelections} choix pour ${_translateCategory(category)}',);
+      }
+      
+      // Vérifier min selections (si > 0)
+      if (selectedCount < constraint.minSelections) {
+         errors.add(
+            'Veuillez sélectionner au moins ${constraint.minSelections} option(s) pour ${_translateCategory(category)}',);
       }
     }
 

@@ -192,11 +192,10 @@ class Order {
       );
     }
 
-    final deliveryAddress =
-        (map['delivery_address']?.toString() ??
-                map['deliveryAddress']?.toString() ??
-                '')
-            .trim();
+    final deliveryAddress = (map['delivery_address']?.toString() ??
+            map['deliveryAddress']?.toString() ??
+            '')
+        .trim();
     if (deliveryAddress.isEmpty) {
       debugPrint(
         '⚠️ Order.fromMap: delivery_address is empty for order $orderId, using default',
@@ -289,20 +288,46 @@ class Order {
       debugPrint('⚠️ Commande ${orderId.substring(0, 8)} créée sans articles');
     }
 
+    // Parse status updates
+    List<OrderStatusUpdate> statusUpdates = [];
+    final updatesRaw = map['status_updates'] ?? map['statusUpdates'];
+    if (updatesRaw is List) {
+      try {
+        statusUpdates = updatesRaw
+            .map((update) {
+              if (update == null) return null;
+              if (update is! Map) return null;
+
+              return OrderStatusUpdate(
+                status: _parseOrderStatus(update['status']),
+                timestamp: parseOrderDateTime(
+                  update['timestamp'] ?? update['created_at'],
+                  now,
+                ),
+                message: update['message']?.toString(),
+                updatedBy: update['updated_by']?.toString() ??
+                    update['updatedBy']?.toString(),
+              );
+            })
+            .whereType<OrderStatusUpdate>()
+            .toList();
+      } catch (e) {
+        debugPrint('⚠️ Erreur parsing status_updates: $e');
+      }
+    }
+
     return Order(
       id: orderId,
       userId: orderUserId,
       items: items,
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
-      deliveryFee:
-          (map['delivery_fee'] as num?)?.toDouble() ??
+      deliveryFee: (map['delivery_fee'] as num?)?.toDouble() ??
           (map['deliveryFee'] as num?)?.toDouble() ??
           5.0,
       total: (map['total'] as num?)?.toDouble() ?? 0.0,
       status: _parseOrderStatus(map['status']),
-      deliveryAddress: deliveryAddress.isEmpty
-          ? 'Adresse non spécifiée'
-          : deliveryAddress,
+      deliveryAddress:
+          deliveryAddress.isEmpty ? 'Adresse non spécifiée' : deliveryAddress,
       deliveryNotes:
           map['delivery_notes']?.toString() ?? map['deliveryNotes']?.toString(),
       promoCode: map['promo_code']?.toString() ?? map['promoCode']?.toString(),
@@ -315,16 +340,13 @@ class Order {
       estimatedDeliveryTime: map['estimated_delivery_time'] != null
           ? parseOrderDateTime(map['estimated_delivery_time'], now)
           : map['estimatedDeliveryTime'] != null
-          ? parseOrderDateTime(map['estimatedDeliveryTime'], now)
-          : null,
-      deliveryPersonId:
-          map['delivery_person_id']?.toString() ??
+              ? parseOrderDateTime(map['estimatedDeliveryTime'], now)
+              : null,
+      deliveryPersonId: map['delivery_person_id']?.toString() ??
           map['deliveryPersonId']?.toString(),
-      specialInstructions:
-          map['special_instructions']?.toString() ??
+      specialInstructions: map['special_instructions']?.toString() ??
           map['specialInstructions']?.toString(),
-      statusUpdates:
-          const [], // TODO: Parse status updates from database if available
+      statusUpdates: statusUpdates,
     );
   }
 }
@@ -340,7 +362,7 @@ class OrderItem {
   final double totalPrice;
   final Map<String, String> customizations;
   final Map<String, dynamic>
-  customizationsData; // Structure complète des customizations
+      customizationsData; // Structure complète des customizations
   final String? notes;
 
   OrderItem({
@@ -396,8 +418,7 @@ class OrderItem {
     // Valider les champs requis
     final menuItemId =
         map['menuItemId']?.toString() ?? map['menu_item_id']?.toString() ?? '';
-    final menuItemName =
-        map['menuItemName']?.toString() ??
+    final menuItemName = map['menuItemName']?.toString() ??
         map['menu_item_name']?.toString() ??
         '';
     final name = map['name']?.toString() ?? '';
@@ -488,8 +509,7 @@ class OrderItem {
       } else if (map['unit_price'] is num) {
         unitPrice = (map['unit_price'] as num).toDouble();
       } else if (map['unitPrice'] != null || map['unit_price'] != null) {
-        unitPrice =
-            double.tryParse(
+        unitPrice = double.tryParse(
               (map['unitPrice'] ?? map['unit_price']).toString(),
             ) ??
             0.0;
@@ -506,8 +526,7 @@ class OrderItem {
       } else if (map['total_price'] is num) {
         totalPrice = (map['total_price'] as num).toDouble();
       } else if (map['totalPrice'] != null || map['total_price'] != null) {
-        totalPrice =
-            double.tryParse(
+        totalPrice = double.tryParse(
               (map['totalPrice'] ?? map['total_price']).toString(),
             ) ??
             0.0;
@@ -527,8 +546,7 @@ class OrderItem {
       menuItemName: menuItemName.isNotEmpty ? menuItemName : name,
       name: name.isNotEmpty ? name : menuItemName,
       categoryId: category.isNotEmpty ? category : 'Non catégorisé',
-      menuItemImage:
-          map['menuItemImage']?.toString() ??
+      menuItemImage: map['menuItemImage']?.toString() ??
           map['menu_item_image']?.toString() ??
           '',
       quantity: quantity,

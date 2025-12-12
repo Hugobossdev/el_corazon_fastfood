@@ -41,10 +41,10 @@ void main() async {
 
   // Load environment variables
   try {
-    await dotenv.load(fileName: ".env");
-    debugPrint("Env file loaded successfully");
+    await dotenv.load(fileName: '.env');
+    debugPrint('Env file loaded successfully');
   } catch (e) {
-    debugPrint("Error loading env file: $e");
+    debugPrint('Error loading env file: $e');
   }
 
   // Override global HTTP client pour accepter les certificats (fix handshake error)

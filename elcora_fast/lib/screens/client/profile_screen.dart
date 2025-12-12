@@ -5,8 +5,10 @@ import 'package:elcora_fast/services/theme_service.dart';
 import 'package:elcora_fast/models/user.dart';
 import 'package:elcora_fast/navigation/app_router.dart';
 import 'package:elcora_fast/navigation/navigation_service.dart';
+import 'package:elcora_fast/services/design_enhancement_service.dart';
 import 'package:elcora_fast/widgets/navigation_helper.dart';
 import 'package:elcora_fast/theme.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -27,18 +29,14 @@ class ProfileScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: AppColors.primaryGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        centerTitle: true,
       ),
       body: Consumer<AppService>(
         builder: (context, appService, child) {
+          if (!appService.isLoggedIn || appService.currentUser == null) {
+            return _buildGuestProfile(context);
+          }
+
           final user = appService.currentUser!;
 
           return SingleChildScrollView(
@@ -147,6 +145,57 @@ class ProfileScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildGuestProfile(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.account_circle_outlined,
+              size: 100,
+              color: AppColors.textSecondary.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Connectez-vous',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Pour accéder à votre profil, vos commandes et vos favoris, veuillez vous connecter ou créer un compte.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+            const SizedBox(height: 32),
+            DesignEnhancementService.createEnhancedButton(
+              text: 'Se connecter / S\'inscrire',
+              icon: Icons.login,
+              onPressed: () {
+                NavigationService.navigateToAuth(context);
+              },
+              backgroundColor: AppColors.primary,
+              isFullWidth: true,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                // Actions supplémentaires si nécessaire (ex: aide)
+              },
+              child: const Text('Besoin d\'aide ?'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -552,7 +601,8 @@ class ProfileScreen extends StatelessWidget {
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: SwitchListTile(
                 secondary: Container(
                   width: 40,
@@ -650,13 +700,17 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
+          IntlPhoneField(
             controller: _phoneController,
             decoration: const InputDecoration(
               labelText: 'Téléphone',
               border: OutlineInputBorder(),
             ),
-            keyboardType: TextInputType.phone,
+            initialCountryCode: 'CI',
+            languageCode: 'fr',
+            onChanged: (phone) {
+              // print(phone.completeNumber);
+            },
           ),
         ],
       ),

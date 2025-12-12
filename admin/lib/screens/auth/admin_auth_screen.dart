@@ -169,9 +169,8 @@ class _AdminAuthScreenState extends State<AdminAuthScreen>
             colors: [
               ModernTheme.primary,
               ModernTheme.primaryDark,
-              ModernTheme.secondary,
             ],
-            stops: [0.0, 0.5, 1.0],
+            stops: [0.0, 1.0],
           ),
         ),
         child: SafeArea(
@@ -206,89 +205,66 @@ class _AdminAuthScreenState extends State<AdminAuthScreen>
     return Column(
       children: [
         Container(
-          width: 140,
-          height: 140,
+          width: 150,
+          height: 150,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Colors.white.withValues(alpha: 0.95),
-              ],
-            ),
+            color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 30,
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 25,
                 spreadRadius: 2,
-                offset: const Offset(0, 15),
+                offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: ModernTheme.primary.withValues(alpha: 0.3),
-                blurRadius: 20,
-                spreadRadius: -2,
-                offset: const Offset(0, 8),
+                color: ModernTheme.primary.withValues(alpha: 0.2),
+                blurRadius: 15,
+                spreadRadius: -3,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  ModernTheme.primary,
-                  ModernTheme.primaryDark,
-                ],
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 3,
-              ),
-            ),
-            child: const Icon(
-              Icons.admin_panel_settings_rounded,
-              size: 70,
-              color: Colors.white,
+          child: ClipOval(
+            child: Image.asset(
+              'assets/logo/logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        ModernTheme.primary,
+                        ModernTheme.primaryDark,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: 3,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                );
+              },
             ),
           ),
         ),
         const SizedBox(height: 28),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFFFF8F0)],
-          ).createShader(bounds),
-          child: const Text(
-            'El Corazón',
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.2,
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
         Text(
           'Panel Administrateur',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
             color: Colors.white.withValues(alpha: 0.95),
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(

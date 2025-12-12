@@ -7,11 +7,11 @@ class ModernTheme {
   // PALETTE DE COULEURS MODERNE
   // =====================================================
 
-  // Couleurs primaires - Bleu professionnel admin
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1E40AF);
-  static const Color primaryContainer = Color(0xFFDBEAFE);
+  // Couleurs primaires - Rouge El Corazón
+  static const Color primary = Color(0xFFE53E3E);
+  static const Color primaryLight = Color(0xFFFC8181);
+  static const Color primaryDark = Color(0xFF9B2C2C);
+  static const Color primaryContainer = Color(0xFFFED7D7);
 
   // Couleurs secondaires - Vert succès
   static const Color secondary = Color(0xFF10B981);

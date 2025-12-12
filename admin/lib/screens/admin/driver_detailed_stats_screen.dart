@@ -121,7 +121,7 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
     if (widget.driver == null) {
       return const Center(
           child: Text(
-              "Sélectionnez un livreur pour voir ses statistiques détaillées."));
+              'Sélectionnez un livreur pour voir ses statistiques détaillées.'));
     }
 
     return Scaffold(
@@ -243,8 +243,8 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.grey[300]!),
                           ),
-                          child: Column(
-                            children: const [
+                          child: const Column(
+                            children: [
                               Icon(Icons.emoji_events_outlined,
                                   size: 48, color: Colors.grey),
                               SizedBox(height: 8),

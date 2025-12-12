@@ -30,6 +30,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   String? _errorMessage;
   Map<String, dynamic>? _deliveryLocation;
   String? _estimatedDeliveryTime;
+  Map<String, dynamic>? _driverProfile;
 
   StreamSubscription<Order>? _orderUpdatesSubscription;
   StreamSubscription<Map<String, dynamic>>? _deliveryLocationSubscription;
@@ -117,6 +118,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
         }
       }
 
+      // Charger le profil du livreur si assigné
+      if (_order != null && _order!.deliveryPersonId != null) {
+        await _loadDriverProfile(_order!.deliveryPersonId!);
+      }
+
       // Charger la dernière position de livraison seulement si la commande existe
       if (_order != null) {
         await _loadLatestDeliveryLocation();
@@ -132,6 +138,20 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
         _errorMessage =
             'Erreur lors du chargement de la commande: ${e.toString()}';
       });
+    }
+  }
+
+  Future<void> _loadDriverProfile(String driverId) async {
+    try {
+      if (_databaseService == null) return;
+      final profile = await _databaseService!.getUserProfile(driverId);
+      if (profile != null && mounted) {
+        setState(() {
+          _driverProfile = profile;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading driver profile: $e');
     }
   }
 
@@ -198,6 +218,14 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
             setState(() {
               _order = updatedOrder;
             });
+
+            // Mettre à jour le profil du livreur si nouvellement assigné
+            if (updatedOrder.deliveryPersonId != null &&
+                (_driverProfile == null ||
+                    _driverProfile!['auth_user_id'] !=
+                        updatedOrder.deliveryPersonId)) {
+              _loadDriverProfile(updatedOrder.deliveryPersonId!);
+            }
 
             // Si la commande est livrée, arrêter le suivi
             if (updatedOrder.status == OrderStatus.delivered) {
@@ -306,18 +334,31 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Impossible de passer l\'appel vers $phoneNumber')),
+            content: Text('Impossible de passer l\'appel vers $phoneNumber'),
+          ),
         );
       }
     }
   }
 
   void _openChat() {
+    if (_order?.deliveryPersonId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Le chat sera disponible une fois qu\'un livreur aura accepté votre commande.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ChatScreen(
           orderId: widget.orderId,
           driverId: _order?.deliveryPersonId,
+          driverName: _driverProfile?['name'] ?? 'Livreur',
         ),
       ),
     );
@@ -412,6 +453,9 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   }
 
   Widget _buildActions() {
+    final hasDriver = _order?.deliveryPersonId != null;
+    final driverPhone = _driverProfile?['phone'];
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -422,23 +466,40 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
               icon: Icons.chat_bubble_outline,
               label: 'Chat',
               onTap: _openChat,
-              color: Colors.blue,
+              color: hasDriver ? Colors.blue : Colors.grey,
+              isEnabled: hasDriver,
             ),
             _buildActionItem(
               icon: Icons.phone_in_talk,
               label: 'Livreur',
               onTap: () {
-                // Placeholder for driver number, assuming we'd fetch it
-                // In a real app, you'd get this from the driver object
-                _makePhoneCall('+22501010101');
+                if (hasDriver && driverPhone != null) {
+                  _makePhoneCall(driverPhone);
+                } else if (hasDriver) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Numéro du livreur non disponible pour le moment'),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Aucun livreur assigné pour le moment'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
-              color: Colors.green,
+              color: hasDriver && driverPhone != null ? Colors.green : Colors.grey,
+              isEnabled: hasDriver && driverPhone != null,
             ),
             _buildActionItem(
               icon: Icons.headset_mic,
               label: 'Support',
               onTap: () => _makePhoneCall('+22507070707'), // Customer service
               color: Colors.orange,
+              isEnabled: true,
             ),
           ],
         ),
@@ -451,9 +512,10 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     required String label,
     required VoidCallback onTap,
     required Color color,
+    bool isEnabled = true,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: isEnabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -473,7 +535,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: isEnabled ? Colors.grey[700] : Colors.grey[400],
               ),
             ),
           ],
@@ -531,6 +593,42 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
             ),
+            if (_driverProfile != null) ...[
+              const Divider(height: 24),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: _driverProfile!['profile_image'] != null
+                        ? NetworkImage(_driverProfile!['profile_image'])
+                        : null,
+                    child: _driverProfile!['profile_image'] == null
+                        ? const Icon(Icons.person, color: Colors.grey)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Livreur',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      Text(
+                        _driverProfile!['name'] ?? 'Livreur assigné',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
