@@ -20,7 +20,8 @@ class CartService extends ChangeNotifier {
 
   final List<CartItem> _items = [];
   double _deliveryFee = 500.0;
-  double _discount = 0.0;
+  double _promoDiscount = 0.0;
+  double _freeMealDiscount = 0.0;
   String? _promoCode;
   bool _isFreeMealApplied = false;
 
@@ -40,8 +41,8 @@ class CartService extends ChangeNotifier {
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
   double get subtotal => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
   double get deliveryFee => _deliveryFee;
-  double get discount => _discount;
-  double get total => subtotal + _deliveryFee - _discount;
+  double get discount => _promoDiscount + _freeMealDiscount;
+  double get total => (subtotal + _deliveryFee - discount).clamp(0.0, double.infinity);
   String? get promoCode => _promoCode;
   bool get isInitialized => _isInitialized;
   String? get userId => _userId;
@@ -49,6 +50,9 @@ class CartService extends ChangeNotifier {
 
   String get _cartItemsKey => 'cart_items_${_userId ?? 'guest'}';
   String get _deliveryFeeKey => 'cart_delivery_fee_${_userId ?? 'guest'}';
+  String get _promoDiscountKey => 'cart_promo_discount_${_userId ?? 'guest'}';
+  String get _freeMealDiscountKey => 'cart_free_meal_discount_${_userId ?? 'guest'}';
+  // Legacy key for migration
   String get _discountKey => 'cart_discount_${_userId ?? 'guest'}';
   String get _promoCodeKey => 'cart_promo_code_${_userId ?? 'guest'}';
   String get _isFreeMealAppliedKey => 'cart_is_free_meal_applied_${_userId ?? 'guest'}';
@@ -97,7 +101,8 @@ class CartService extends ChangeNotifier {
     _userId = null;
     _items.clear();
     _deliveryFee = 500.0;
-    _discount = 0.0;
+    _promoDiscount = 0.0;
+    _freeMealDiscount = 0.0;
     _promoCode = null;
 
     await _loadCartFromStorage(); // recharger le panier "invité"
@@ -237,7 +242,8 @@ class CartService extends ChangeNotifier {
   void clear() {
     final itemCount = _items.length;
     _items.clear();
-    _discount = 0.0;
+    _promoDiscount = 0.0;
+    _freeMealDiscount = 0.0;
     _promoCode = null;
     _isFreeMealApplied = false;
     debugPrint('✅ Panier vidé ($itemCount articles)');
@@ -379,7 +385,7 @@ class CartService extends ChangeNotifier {
       return;
     }
     _promoCode = code;
-    _discount = discount;
+    _promoDiscount = discount;
     debugPrint(
         '✅ Remise appliquée: $_promoCode (-${discount.toStringAsFixed(2)} FCFA)',);
     notifyListeners();
@@ -423,19 +429,7 @@ class CartService extends ChangeNotifier {
     if (_isFreeMealApplied) {
       // Désactiver
       _isFreeMealApplied = false;
-      // Recalculer la remise (enlever la remise du repas gratuit)
-      // Note: C'est une simplification, idéalement on devrait recalculer proprement
-      // mais comme on ne stocke pas quel item était gratuit, on va refaire le calcul.
-      // Si on avait un code promo, on suppose qu'il est toujours dans _discount.
-      
-      // Pour l'instant, on va réinitialiser la remise si c'est la seule
-      if (_promoCode == null) {
-        _discount = 0.0;
-      } else {
-        // Si code promo actif, on ne peut pas facilement savoir combien il valait sans le revalider
-        // On laisse comme ça pour l'instant ou on pourrait forcer le recalcul
-        // TODO: Améliorer la gestion combinée promo + repas gratuit
-      }
+      _freeMealDiscount = 0.0;
     } else {
       // Activer
       _isFreeMealApplied = true;
@@ -449,7 +443,7 @@ class CartService extends ChangeNotifier {
       }
       
       // Ajouter la remise
-      _discount += maxPrice;
+      _freeMealDiscount = maxPrice;
     }
     
     notifyListeners();
@@ -459,20 +453,7 @@ class CartService extends ChangeNotifier {
   /// Retire le code promo
   void removePromoCode() {
     _promoCode = null;
-    
-    // Si le repas gratuit est activé, on garde sa remise
-    if (_isFreeMealApplied) {
-      // Recalculer pour être sûr
-      double maxPrice = 0.0;
-      for (final item in _items) {
-        if (item.price > maxPrice) {
-          maxPrice = item.price;
-        }
-      }
-      _discount = maxPrice;
-    } else {
-      _discount = 0.0;
-    }
+    _promoDiscount = 0.0;
     
     notifyListeners();
     _persistChanges();
@@ -492,7 +473,7 @@ class CartService extends ChangeNotifier {
           .toList(),
       'subtotal': subtotal,
       'delivery_fee': _deliveryFee,
-      'discount': _discount,
+      'discount': discount,
       'promo_code': _promoCode,
       'total': total,
     };
@@ -526,7 +507,21 @@ class CartService extends ChangeNotifier {
       }
 
       _deliveryFee = _prefs?.getDouble(_deliveryFeeKey) ?? 500.0;
-      _discount = _prefs?.getDouble(_discountKey) ?? 0.0;
+      
+      // Migration from single discount to split discount
+      if (_prefs?.containsKey(_discountKey) == true) {
+        final legacyDiscount = _prefs!.getDouble(_discountKey) ?? 0.0;
+        // If we have a legacy discount, we assume it's promo if not free meal, or mixed?
+        // Safest is to put it in promo for now if not free meal.
+        _promoDiscount = legacyDiscount;
+        // Clean up legacy key later or now? Let's leave it for safety or remove it.
+        // removing it in _removeStoredCartKeys is enough.
+      } else {
+        _promoDiscount = _prefs?.getDouble(_promoDiscountKey) ?? 0.0;
+      }
+      
+      _freeMealDiscount = _prefs?.getDouble(_freeMealDiscountKey) ?? 0.0;
+      
       _promoCode = _prefs?.getString(_promoCodeKey);
       _isFreeMealApplied = _prefs?.getBool(_isFreeMealAppliedKey) ?? false;
     } catch (e) {
@@ -541,8 +536,12 @@ class CartService extends ChangeNotifier {
       final itemsData = _items.map((item) => item.toMap()).toList();
       await _prefs!.setString(_cartItemsKey, json.encode(itemsData));
       await _prefs!.setDouble(_deliveryFeeKey, _deliveryFee);
-      await _prefs!.setDouble(_discountKey, _discount);
+      await _prefs!.setDouble(_promoDiscountKey, _promoDiscount);
+      await _prefs!.setDouble(_freeMealDiscountKey, _freeMealDiscount);
       await _prefs!.setBool(_isFreeMealAppliedKey, _isFreeMealApplied);
+      
+      // Remove legacy discount key
+      await _prefs!.remove(_discountKey);
 
       if (_promoCode != null && _promoCode!.isNotEmpty) {
         await _prefs!.setString(_promoCodeKey, _promoCode!);
@@ -560,7 +559,9 @@ class CartService extends ChangeNotifier {
     if (_prefs == null) return;
     await _prefs!.remove(_cartItemsKey);
     await _prefs!.remove(_deliveryFeeKey);
-    await _prefs!.remove(_discountKey);
+    await _prefs!.remove(_promoDiscountKey);
+    await _prefs!.remove(_freeMealDiscountKey);
+    await _prefs!.remove(_discountKey); // Legacy
     await _prefs!.remove(_promoCodeKey);
     await _prefs!.remove(_isFreeMealAppliedKey);
   }
@@ -583,7 +584,14 @@ class CartService extends ChangeNotifier {
 
       _deliveryFee =
           (snapshot['deliveryFee'] as num?)?.toDouble() ?? _deliveryFee;
-      _discount = (snapshot['discount'] as num?)?.toDouble() ?? _discount;
+      
+      // When loading from DB, we get a single discount field usually.
+      // We will assign it to promoDiscount by default, unless we have better logic.
+      // Ideally DB should store both, but if not:
+      final totalRemoteDiscount = (snapshot['discount'] as num?)?.toDouble() ?? 0.0;
+      _promoDiscount = totalRemoteDiscount;
+      _freeMealDiscount = 0.0; // Reset as we don't know the split from DB yet
+      
       _promoCode = snapshot['promoCode'] as String?;
 
       debugPrint(
@@ -613,7 +621,7 @@ class CartService extends ChangeNotifier {
         userId: _userId!,
         items: List<CartItem>.from(_items),
         deliveryFee: _deliveryFee,
-        discount: _discount,
+        discount: discount, // Send total discount
         promoCode: _promoCode,
       );
     } catch (e) {
@@ -624,7 +632,7 @@ class CartService extends ChangeNotifier {
           _userId!,
           List<CartItem>.from(_items),
           _deliveryFee,
-          _discount,
+          discount,
           _promoCode,
         );
       } else {
@@ -668,7 +676,7 @@ class CartService extends ChangeNotifier {
           userId: _userId!,
           items: List<CartItem>.from(_items),
           deliveryFee: _deliveryFee,
-          discount: _discount,
+          discount: discount,
           promoCode: _promoCode,
         );
       } else if (_items.isEmpty) {
@@ -676,7 +684,11 @@ class CartService extends ChangeNotifier {
           ..clear()
           ..addAll(remoteItems);
         _deliveryFee = remoteDeliveryFee ?? _deliveryFee;
-        _discount = remoteDiscount ?? _discount;
+        
+        // Handle incoming discount
+        _promoDiscount = remoteDiscount ?? 0.0;
+        _freeMealDiscount = 0.0;
+        
         _promoCode = remotePromo;
         notifyListeners();
         await _saveCartToStorage();
@@ -686,7 +698,12 @@ class CartService extends ChangeNotifier {
           ..clear()
           ..addAll(merged);
         _deliveryFee = remoteDeliveryFee ?? _deliveryFee;
-        _discount = remoteDiscount ?? _discount;
+        
+        // Strategy: prefer local detailed discount if available, else take remote total
+        if (_promoDiscount == 0.0 && _freeMealDiscount == 0.0) {
+           _promoDiscount = remoteDiscount ?? 0.0;
+        }
+        
         if (_promoCode == null || _promoCode!.isEmpty) {
           _promoCode = remotePromo;
         }
@@ -697,7 +714,7 @@ class CartService extends ChangeNotifier {
           userId: _userId!,
           items: List<CartItem>.from(_items),
           deliveryFee: _deliveryFee,
-          discount: _discount,
+          discount: discount,
           promoCode: _promoCode,
         );
       }

@@ -27,6 +27,12 @@ class NotificationService extends ChangeNotifier {
   List<Map<String, dynamic>> get notifications => _notifications;
   int get unreadCount => _unreadCount;
   String? get fcmToken => _fcmToken;
+  bool _notificationsEnabled = true;
+
+  void setNotificationsEnabled(bool enabled) {
+    _notificationsEnabled = enabled;
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     // Initialize Local Notifications
@@ -152,6 +158,8 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> showOrderConfirmationNotification(
       String orderId, String items) async {
+    if (!_notificationsEnabled) return;
+
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
       'order_channel',
@@ -182,6 +190,8 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> showDeliveryUpdateNotification(
       String status, String orderId) async {
+    if (!_notificationsEnabled) return;
+
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
       'delivery_channel',
@@ -226,6 +236,8 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<void> showPromotionNotification(String title, String message) async {
+    if (!_notificationsEnabled) return;
+
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
       'promotion_channel',
@@ -262,6 +274,8 @@ class NotificationService extends ChangeNotifier {
     String? channelName,
     String? channelDescription,
   }) async {
+    if (!_notificationsEnabled) return;
+
     final AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
       channelId ?? 'general_channel',

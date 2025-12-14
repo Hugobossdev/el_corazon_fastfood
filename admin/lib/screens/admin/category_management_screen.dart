@@ -59,15 +59,18 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: categories.length,
+            buildDefaultDragHandles: false,
             onReorder: (oldIndex, newIndex) {
               if (oldIndex < newIndex) {
                 newIndex -= 1;
               }
-              final item = categories.removeAt(oldIndex);
-              categories.insert(newIndex, item);
+              // Créer une nouvelle liste pour ne pas modifier l'état directement
+              final newCategories = List<Category>.from(categories);
+              final item = newCategories.removeAt(oldIndex);
+              newCategories.insert(newIndex, item);
 
               // Mettre à jour l'ordre dans le service/backend
-              categoryService.reorderCategories(categories);
+              categoryService.reorderCategories(newCategories);
             },
             itemBuilder: (context, index) {
               final category = categories[index];
@@ -117,11 +120,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                             _showCategoryDialog(context, category: category),
                         tooltip: 'Modifier',
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.drag_handle),
-                        onPressed:
-                            () {}, // Le drag se fait sur toute la tuile ou via ce handle
-                        tooltip: 'Réorganiser',
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: Icon(Icons.drag_handle, color: Colors.grey),
+                        ),
                       ),
                     ],
                   ),

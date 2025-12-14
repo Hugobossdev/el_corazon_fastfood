@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:elcora_fast/models/user.dart';
+import 'package:elcora_fast/models/cart_item.dart';
 import 'package:elcora_fast/models/menu_item.dart';
 import 'package:elcora_fast/models/order.dart';
 import 'package:elcora_fast/services/paydunya_service.dart';
@@ -117,8 +118,23 @@ class AppRouter {
         );
 
       case checkout:
+        final args = settings.arguments as Map<String, dynamic>?;
+        // Check if items were passed as generic list and cast them
+        List<CartItem>? items;
+        if (args?['items'] != null) {
+          try {
+            items = (args!['items'] as List).cast<CartItem>();
+          } catch (e) {
+            debugPrint('Error casting items in checkout route: $e');
+          }
+        }
+
         return MaterialPageRoute(
-          builder: (_) => const CheckoutScreen(),
+          builder: (_) => CheckoutScreen(
+            existingOrderId: args?['existingOrderId'] as String?,
+            preloadedItems: items,
+            preloadedTotal: (args?['total'] as num?)?.toDouble(),
+          ),
           settings: settings,
         );
 

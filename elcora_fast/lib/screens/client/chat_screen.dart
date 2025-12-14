@@ -200,13 +200,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(ChatMessage message, bool isMe) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isMe ? Theme.of(context).primaryColor : Colors.grey[200],
+          color: isMe 
+              ? theme.primaryColor 
+              : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey[200]),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -222,7 +227,9 @@ class _ChatScreenState extends State<ChatScreen> {
             Text(
               message.content,
               style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
+                color: isMe 
+                    ? Colors.white 
+                    : (isDark ? theme.colorScheme.onSurface : Colors.black87),
               ),
             ),
             const SizedBox(height: 4),
@@ -230,7 +237,9 @@ class _ChatScreenState extends State<ChatScreen> {
               DateFormat('HH:mm').format(message.createdAt),
               style: TextStyle(
                 fontSize: 10,
-                color: isMe ? Colors.white70 : Colors.black54,
+                color: isMe 
+                    ? Colors.white70 
+                    : (isDark ? theme.colorScheme.onSurfaceVariant : Colors.black54),
               ),
             ),
           ],
@@ -240,13 +249,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInput() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
             offset: const Offset(0, -2),
             blurRadius: 4,
           ),
@@ -258,7 +270,9 @@ class _ChatScreenState extends State<ChatScreen> {
             IconButton(
               icon: const Icon(Icons.add_photo_alternate),
               onPressed: () {
-                // TODO: Implement image sending
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('L\'envoi d\'images sera bientôt disponible')),
+                );
               },
             ),
             Expanded(

@@ -216,7 +216,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     }
   }
 
-  Future<void> _initializeCustomization() async {
+  Future<void> _initializeCustomization({MenuItem? prefillFrom}) async {
     if (_customCakeItem == null) {
       debugPrint(
           '⚠️ _customCakeItem est null, impossible d\'initialiser la personnalisation',);
@@ -242,6 +242,11 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
         _customCakeItem!.name,
       );
 
+      // Logique de pré-remplissage intelligente
+      if (prefillFrom != null) {
+        _applySmartPrefill(customizationService, prefillFrom);
+      }
+
       debugPrint('✅ Personnalisation initialisée avec succès');
 
       // Forcer un rebuild pour afficher les options
@@ -259,6 +264,76 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
           ),
         );
       }
+    }
+  }
+
+  void _applySmartPrefill(CustomizationService service, MenuItem cake) {
+    final options = service.getOptionsForMenuItem(_customCakeItem!.id, fallbackName: _customCakeItem!.name);
+    final textToMatch = '${cake.name} ${cake.description}'.toLowerCase();
+    
+    // Mots-clés de mapping (pourrait être déplacé dans une configuration)
+    final keywords = {
+      'chocolat': 'chocolate',
+      'vanille': 'vanilla',
+      'fraise': 'strawberry',
+      'rond': 'round',
+      'carré': 'square',
+      'coeur': 'heart',
+      'cœur': 'heart',
+      'rectangle': 'rectangle',
+      'petit': 'small',
+      'moyen': 'medium',
+      'grand': 'large',
+    };
+
+    int prefilledCount = 0;
+
+    for (final option in options) {
+      // Vérifier si le nom de l'option ou un mot-clé correspond
+      bool match = false;
+      
+      // 1. Match direct sur le nom de l'option (ex: "Chocolat" dans le nom du gâteau)
+      if (textToMatch.contains(option.name.toLowerCase())) {
+        match = true;
+      } 
+      // 2. Match via l'ID de l'option (ex: "cake-flavor-chocolate")
+      else {
+        for (final entry in keywords.entries) {
+          if (textToMatch.contains(entry.key) && 
+              option.id.toLowerCase().contains(entry.value)) {
+            match = true;
+            break;
+          }
+        }
+      }
+
+      if (match) {
+        // Appliquer la sélection
+        final constraint = service.getCategoryConstraint(option.category);
+        
+        // Pour les single choice, on remplace. Pour les multi, on ajoute.
+        if (constraint.isSingleChoice) {
+           // On vérifie si on n'a pas déjà sélectionné qqch pour cette catégorie
+           final currentSelections = service.getCurrentCustomization(_customizationId)?.selections[option.category];
+           if (currentSelections == null || currentSelections.isEmpty || currentSelections.contains(option.id)) { // Ou si c'est la valeur par défaut
+             service.updateSelection(_customizationId, option.category, option.id, true);
+             prefilledCount++;
+           }
+        } else {
+           service.updateSelection(_customizationId, option.category, option.id, true);
+           prefilledCount++;
+        }
+      }
+    }
+
+    if (prefilledCount > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pré-sélectionné selon "${cake.name}" ($prefilledCount options)'),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -427,10 +502,13 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
                               TextButton.icon(
                                 icon: const Icon(Icons.build_circle_outlined, size: 20),
                                 label: const Text('Personnaliser'),
-                                onPressed: () {
-                                  // Pré-sélectionner ce gâteau pour la personnalisation
+                                onPressed: () async {
+                                  // Réinitialiser et pré-remplir avec ce gâteau
+                                  await _resetCustomization(
+                                    Provider.of<CustomizationService>(context, listen: false),
+                                    prefillFrom: cake
+                                  );
                                   _tabController.animateTo(1);
-                                  // TODO: Implémenter la logique pour charger ce modèle spécifique comme base
                                 },
                               ),
                               const SizedBox(width: 8),
@@ -1312,7 +1390,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     }
   }
 
-  Future<void> _resetCustomization(CustomizationService service) async {
+  Future<void> _resetCustomization(CustomizationService service, {MenuItem? prefillFrom}) async {
     // Nettoyer la personnalisation précédente
     service.clearCustomization(_customizationId);
     
@@ -1328,7 +1406,7 @@ class _CakeOrderScreenState extends State<CakeOrderScreen>
     
     // Réinitialiser la personnalisation
     if (_customCakeItem != null) {
-      await _initializeCustomization();
+      await _initializeCustomization(prefillFrom: prefillFrom);
     }
     
     // Forcer un rebuild

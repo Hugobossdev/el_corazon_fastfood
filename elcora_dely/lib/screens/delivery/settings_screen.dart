@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/app_service.dart';
 import '../../services/location_service.dart';
+import '../../services/notification_service.dart';
 import 'driver_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -60,13 +61,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Update services based on settings
       final locationService =
           Provider.of<LocationService>(context, listen: false);
+      final notificationService =
+          Provider.of<NotificationService>(context, listen: false);
+
+      notificationService.setNotificationsEnabled(_notificationsEnabled);
 
       if (_locationTrackingEnabled) {
         await locationService.requestLocationPermission();
+      } else {
+        // Optionnel : Arrêter le suivi si désactivé
+        // locationService.stopTracking(); 
       }
-
-      // Notification settings are handled by the service itself
-      // The service will respect the _notificationsEnabled flag
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

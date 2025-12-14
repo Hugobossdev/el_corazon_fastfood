@@ -126,12 +126,12 @@ class AdvancedGamificationService extends ChangeNotifier {
       Achievement(
         id: 'big_spender',
         name: 'Gros Dépensier',
-        description: 'Dépensez plus de 100€ en une commande',
+        description: 'Dépensez plus de 50 000 CFA en une commande',
         icon: '💰',
         category: AchievementCategory.money,
         rarity: AchievementRarity.epic,
         points: 400,
-        requirements: {'single_order_amount': 100},
+        requirements: {'single_order_amount': 50000},
       ),
     ]);
   }
@@ -281,7 +281,7 @@ class AdvancedGamificationService extends ChangeNotifier {
     int points = 0;
 
     // Points de base
-    points += (order.total * 10).round();
+    points += (order.total / 100).round();
 
     // Bonus pour catégories spécifiques
     for (final item in order.items) {

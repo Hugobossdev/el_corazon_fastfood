@@ -51,5 +51,8 @@ class MenuCategory {
       'is_active': isActive,
     };
   }
+  
+  // JSON Serialization support
+  factory MenuCategory.fromJson(Map<String, dynamic> json) => MenuCategory.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 }
-

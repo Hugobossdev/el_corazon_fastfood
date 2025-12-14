@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/app_service.dart';
-import '../../utils/price_formatter.dart';
+import '../../widgets/delivery_order_card.dart';
 import '../../services/paydunya_service.dart';
 import '../../services/address_service.dart';
 import '../../services/promo_code_service.dart';
@@ -683,98 +683,16 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
         else
           ...availableOrders
               .take(3)
-              .map((order) => _buildAvailableOrderCard(context, order)),
+              .map((order) => DeliveryOrderCard(
+                    order: order,
+                    isAvailable: true,
+                    onAccept: () => _acceptOrder(context, order),
+                  )),
       ],
     );
   }
 
-  Widget _buildAvailableOrderCard(BuildContext context, Order order) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text('📦', style: TextStyle(fontSize: 20)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Commande #${order.id.substring(0, 8).toUpperCase()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '${order.items.length} articles - ${PriceFormatter.format(order.total)}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: Text(
-                    PriceFormatter.format(order.total),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    order.deliveryAddress,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _acceptOrder(context, order),
-                icon: const Icon(Icons.check, size: 18),
-                label: const Text('Accepter la livraison'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // _buildAvailableOrderCard supprimé (remplacé par DeliveryOrderCard)
 
   Widget _buildMyDeliveries(BuildContext context, List<Order> myDeliveries) {
     final activeDeliveries = myDeliveries
@@ -820,132 +738,22 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
           )
         else
           ...activeDeliveries.map(
-            (order) => _buildMyDeliveryCard(context, order),
+            (order) => DeliveryOrderCard(
+              order: order,
+              isAvailable: false,
+              onNavigate: () => _navigateToOrder(context, order),
+              onAction: () => _updateDeliveryStatus(context, order),
+              onChat: () => _openChat(context, order),
+              onSupport: () => _openSupportChat(context, order),
+              actionLabel: _getNextActionText(order.status),
+              actionIcon: _getNextActionIcon(order.status),
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildMyDeliveryCard(BuildContext context, Order order) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(order.status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      order.status.emoji,
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Commande #${order.id.substring(0, 8).toUpperCase()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        order.status.displayName,
-                        style: TextStyle(
-                          color: _getStatusColor(order.status),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: Text(
-                    PriceFormatter.format(order.total),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    order.deliveryAddress,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToOrder(context, order),
-                    icon: const Icon(Icons.navigation, size: 18),
-                    label: const Text('Navigation'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _updateDeliveryStatus(context, order),
-                    icon: Icon(_getNextActionIcon(order.status), size: 18),
-                    label: Text(_getNextActionText(order.status)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openChat(context, order),
-                    icon: const Icon(Icons.chat, size: 18),
-                    label: const Text('Chat'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openSupportChat(context, order),
-                    icon: const Icon(Icons.support_agent, size: 18),
-                    label: const Text('Support'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // _buildMyDeliveryCard supprimé (remplacé par DeliveryOrderCard)
 
   Future<void> _toggleOnlineStatus(BuildContext context) async {
     final appService = Provider.of<AppService>(context, listen: false);
@@ -1114,19 +922,6 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
         return Icons.check_circle;
       default:
         return Icons.arrow_forward;
-    }
-  }
-
-  Color _getStatusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.pickedUp:
-        return Colors.teal;
-      case OrderStatus.onTheWay:
-        return Colors.indigo;
-      case OrderStatus.delivered:
-        return Colors.green;
-      default:
-        return Colors.grey;
     }
   }
 

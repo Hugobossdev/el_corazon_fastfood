@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io' if (dart.library.html) 'dart:html' as io;
 import '../../services/app_service.dart';
 import '../../services/error_handler_service.dart';
+import '../../services/storage_service.dart';
 import '../../models/user.dart';
 import '../../models/driver.dart';
 import '../../models/driver_badge.dart';
@@ -22,6 +26,11 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
   final _emailController = TextEditingController();
   final _licenseController = TextEditingController();
   final _vehicleController = TextEditingController();
+  
+  final ImagePicker _imagePicker = ImagePicker();
+  io.File? _newProfilePhoto;
+  Uint8List? _newProfilePhotoBytes;
+  
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isLoadingDriverData = true;
@@ -122,6 +131,51 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
     }
   }
 
+  /// Helper to create a File on mobile only
+  /// This ensures we use dart:io.File, not dart:html.File
+  io.File _createFileFromPath(String path) {
+    if (kIsWeb) {
+      throw UnsupportedError('File creation not supported on web');
+    }
+    // On mobile, io.File is dart:io.File
+    // Use a cast to work around conditional import type checking
+    // ignore: avoid_dynamic_calls
+    return (io.File as dynamic)(path);
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          setState(() {
+            _newProfilePhotoBytes = bytes;
+            _newProfilePhoto = null;
+          });
+        } else {
+          setState(() {
+            _newProfilePhoto = _createFileFromPath(image.path);
+            _newProfilePhotoBytes = null;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la sélection de l\'image')),
+        );
+      }
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -134,19 +188,43 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       final user = appService.currentUser;
 
       if (user != null) {
+        String? newPhotoUrl;
+
+        // Upload photo if changed
+        if (_newProfilePhoto != null || _newProfilePhotoBytes != null) {
+          final storageService = StorageService();
+          if (kIsWeb && _newProfilePhotoBytes != null) {
+            newPhotoUrl = await storageService.uploadDriverDocument(
+              userId: user.id,
+              fileBytes: _newProfilePhotoBytes!,
+              documentType: 'profile_photo',
+            );
+          } else if (_newProfilePhoto != null) {
+            newPhotoUrl = await storageService.uploadFile(
+              file: _newProfilePhoto!,
+              bucketName: 'driver-documents', // Using consistent bucket
+              folder: '${user.id}/profiles',
+            );
+          }
+        }
+
         // Update user profile in database
         final databaseService = appService.databaseService;
-        await databaseService.updateUserProfile(user.id, {
+        final updates = {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
-        });
+        };
+        
+        if (newPhotoUrl != null) {
+          updates['profile_image'] = newPhotoUrl;
+        }
 
-        // Mise à jour des infos driver si nécessaire (license, véhicule...)
-        // Note: Le code actuel ne semble pas permettre l'édition de ces champs via l'UI simple
-        // Si on veut permettre l'édition, il faudrait ajouter la méthode updateDriverProfile
-        if (_driverProfile != null) {
-             // Exemple d'update partiel si implémenté dans le service
-             // await databaseService.updateDriverProfile(_driverProfile!.id, { ... });
+        await databaseService.updateUserProfile(user.id, updates);
+
+        // Update driver profile if needed (for photo)
+        if (newPhotoUrl != null && _driverProfile != null) {
+           // We might want to update the driver table specifically if the photos are stored there too
+           // But user profile image is usually sufficient for display
         }
 
         // Reload user profile
@@ -156,6 +234,8 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         setState(() {
           _isEditing = false;
           _isSaving = false;
+          _newProfilePhoto = null;
+          _newProfilePhotoBytes = null;
         });
 
         if (mounted) {
@@ -274,6 +354,16 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
   }
 
   Widget _buildProfileHeader(User user) {
+    ImageProvider? backgroundImage;
+    
+    if (_newProfilePhotoBytes != null) {
+      backgroundImage = MemoryImage(_newProfilePhotoBytes!);
+    } else if (_newProfilePhoto != null) {
+      backgroundImage = FileImage(_newProfilePhoto! as dynamic);
+    } else if (_driverProfile?.profilePhotoUrl != null) {
+      backgroundImage = NetworkImage(_driverProfile!.profilePhotoUrl!);
+    }
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -293,24 +383,42 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           children: [
             Stack(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  backgroundImage: _driverProfile?.profilePhotoUrl != null 
-                      ? NetworkImage(_driverProfile!.profilePhotoUrl!) 
-                      : null,
-                  child: _driverProfile?.profilePhotoUrl == null
-                      ? Text(
-                          user.name.substring(0, 2).toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        )
-                      : null,
+                GestureDetector(
+                  onTap: _isEditing ? _pickImage : null,
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    backgroundImage: backgroundImage,
+                    child: backgroundImage == null
+                        ? Text(
+                            user.name.substring(0, 2).toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
-                if (_driverProfile?.verificationStatus == 'approved')
+                if (_isEditing)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ),
+                  )
+                else if (_driverProfile?.verificationStatus == 'approved')
                   Positioned(
                     bottom: 0,
                     right: 0,

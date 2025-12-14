@@ -5,21 +5,27 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AnalyticsService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   bool _isLoading = false;
+  Map<String, dynamic> _analyticsData = {};
+  String? _error;
 
   bool get isLoading => _isLoading;
+  Map<String, dynamic> get analyticsData => _analyticsData;
+  String? get error => _error;
 
   void _setLoading(bool value) {
     _isLoading = value;
-    // Defer notifications to avoid setState/markNeedsBuild during build
     Future.microtask(() => notifyListeners());
   }
 
-  /// Récupérer toutes les données analytiques en une fois pour éviter les problèmes de connexion
-  Future<Map<String, dynamic>> fetchAllAnalytics({
+  /// Récupérer toutes les données analytiques
+  Future<void> loadAnalyticsData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
+    if (_isLoading) return;
+    
     _setLoading(true);
+    _error = null;
     
     int retryCount = 0;
     const maxRetries = 3;
@@ -63,28 +69,36 @@ class AnalyticsService extends ChangeNotifier {
         final orderResult = _processOrderData(ordersData, startDate, endDate);
         final categoryResult = _processCategoryData(categoryData, startDate, endDate);
 
-        _setLoading(false);
-
-        return {
+        _analyticsData = {
           'revenue': revenueResult,
           'orders': orderResult,
           'categories': categoryResult,
         };
+        
+        _setLoading(false);
+        return;
       } catch (e) {
         retryCount++;
         debugPrint('Error fetching all analytics (Attempt $retryCount/$maxRetries): $e');
         
         if (retryCount >= maxRetries) {
+          _error = 'Impossible de récupérer les données: ${e.toString()}';
           _setLoading(false);
-          return {
-            'error': 'Impossible de récupérer les données analytiques après plusieurs tentatives: ${e.toString()}',
-          };
         }
       }
     }
-    
-    _setLoading(false);
-    return {'error': 'Erreur inconnue'};
+  }
+
+  /// Ancienne méthode conservée pour compatibilité mais dépréciée
+  Future<Map<String, dynamic>> fetchAllAnalytics({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    await loadAnalyticsData(startDate: startDate, endDate: endDate);
+    if (_error != null) {
+      return {'error': _error};
+    }
+    return _analyticsData;
   }
 
   Map<String, dynamic> _processRevenueData(List<dynamic> data, DateTime startDate, DateTime endDate) {

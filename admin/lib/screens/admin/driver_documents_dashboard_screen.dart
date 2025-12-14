@@ -5,6 +5,8 @@ import '../../services/driver_document_service.dart' as svc;
 import '../../services/driver_management_service.dart';
 import 'driver_document_validation_screen.dart';
 
+import '../../models/driver.dart';
+
 class DriverDocumentsDashboardScreen extends StatefulWidget {
   const DriverDocumentsDashboardScreen({super.key});
 
@@ -27,7 +29,10 @@ class _DriverDocumentsDashboardScreenState
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadData();
+    // Charger les données après le build initial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   @override
@@ -184,17 +189,9 @@ class _DriverDocumentsDashboardScreenState
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Le nom du livreur n'est pas directement dans DriverDocument
-                // Il faudrait idéalement faire une jointure ou charger le user
-                // Pour l'instant on affiche l'ID ou on charge le nom
-                FutureBuilder<String>(
-                  future: _getDriverName(doc.userId),
-                  builder: (context, snapshot) {
-                    return Text(
-                      'Livreur: ${snapshot.data ?? "Chargement..."}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    );
-                  },
+                Text(
+                  'Livreur: ${doc.driverName ?? "Inconnu"}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text('Date: ${_formatDate(doc.updatedAt)}'),
                 if (doc.status == DocumentValidationStatus.expired)
@@ -206,31 +203,7 @@ class _DriverDocumentsDashboardScreenState
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
-              // Récupérer l'objet Driver complet pour la navigation
-              // C'est un peu coûteux, mais nécessaire pour l'écran suivant
-              final driverService = context.read<DriverManagementService>();
-              // Trouver le driver dans la liste chargée du service
-              try {
-                final driver = driverService.drivers.firstWhere(
-                  (d) => d.userId == doc.userId || d.id == doc.userId,
-                );
-                
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        DriverDocumentValidationScreen(driver: driver),
-                  ),
-                );
-                // Recharger les données au retour
-                _loadData();
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Impossible de trouver le livreur associé'),
-                  ),
-                );
-              }
+              _navigateToValidation(doc);
             },
           ),
         );
@@ -238,17 +211,54 @@ class _DriverDocumentsDashboardScreenState
     );
   }
 
-  Future<String> _getDriverName(String userId) async {
-    // Petit cache local ou appel DB rapide pourrait être mieux
-    // Ici on utilise le service existant s'il a les données
+  Future<void> _navigateToValidation(DriverDocument doc) async {
     final driverService = context.read<DriverManagementService>();
+    
+    // Essayer de trouver le livreur dans la liste chargée
+    Driver? driver;
     try {
-      final driver = driverService.drivers.firstWhere(
-        (d) => d.userId == userId || d.id == userId,
+      driver = driverService.drivers.firstWhere(
+        (d) => d.userId == doc.userId || d.id == doc.userId,
       );
-      return driver.name;
     } catch (_) {
-      return 'ID: ${userId.substring(0, 8)}...';
+      // Si non trouvé dans la liste (ex: pas chargé), créer un objet temporaire
+      // ou idéalement charger le livreur spécifique
+      if (doc.driverName != null) {
+        driver = Driver(
+          id: doc.userId,
+          userId: doc.userId,
+          authUserId: doc.userId,
+          name: doc.driverName!,
+          email: doc.driverEmail ?? '',
+          phone: doc.driverPhone ?? '',
+          status: DriverStatus.unavailable, // Statut par défaut
+          isActive: false,
+          rating: 0,
+          totalDeliveries: 0,
+          totalEarnings: 0,
+          createdAt: DateTime.now(),
+        );
+      }
+    }
+
+    if (driver != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              DriverDocumentValidationScreen(driver: driver!),
+        ),
+      );
+      // Recharger les données au retour
+      _loadData();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de trouver les informations du livreur'),
+          ),
+        );
+      }
     }
   }
 

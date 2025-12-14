@@ -17,7 +17,16 @@ import 'package:elcora_fast/navigation/app_router.dart';
 
 /// Écran de finalisation de commande
 class CheckoutScreen extends StatefulWidget {
-  const CheckoutScreen({super.key});
+  final String? existingOrderId;
+  final List<CartItem>? preloadedItems;
+  final double? preloadedTotal;
+
+  const CheckoutScreen({
+    super.key,
+    this.existingOrderId,
+    this.preloadedItems,
+    this.preloadedTotal,
+  });
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -109,16 +118,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         deliveryLongitude: address.longitude,
       );
 
-      setState(() {
-        _estimatedDistance = deliveryInfo['distance'] as double?;
-        _estimatedDeliveryTime = deliveryInfo['estimatedTime'] as int?;
-      });
+      if (mounted) {
+        setState(() {
+          _estimatedDistance = deliveryInfo['distance'] as double?;
+          _estimatedDeliveryTime = deliveryInfo['estimatedTime'] as int?;
+        });
+      }
     } catch (e) {
       debugPrint('Erreur calcul frais livraison: $e');
     } finally {
-      setState(() {
-        _isCalculatingDeliveryFee = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isCalculatingDeliveryFee = false;
+        });
+      }
     }
   }
 
@@ -145,11 +158,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _onAddressChanged(String addressText) async {
     if (addressText.trim().isEmpty) {
-      setState(() {
-        _selectedAddress = null;
-        _estimatedDistance = null;
-        _estimatedDeliveryTime = null;
-      });
+      if (mounted) {
+        setState(() {
+          _selectedAddress = null;
+          _estimatedDistance = null;
+          _estimatedDeliveryTime = null;
+        });
+      }
       // Réinitialiser les frais au prix par défaut
       final cartService = context.read<CartService>();
       cartService.setDeliveryFee(1000.0);
@@ -170,10 +185,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           deliveryAddress: addressText,
         );
 
-        setState(() {
-          _estimatedDistance = deliveryInfo['distance'] as double?;
-          _estimatedDeliveryTime = deliveryInfo['estimatedTime'] as int?;
-        });
+        if (mounted) {
+          setState(() {
+            _estimatedDistance = deliveryInfo['distance'] as double?;
+            _estimatedDeliveryTime = deliveryInfo['estimatedTime'] as int?;
+          });
+        }
       } catch (e) {
         debugPrint('Erreur calcul frais pour adresse texte: $e');
       }
@@ -234,8 +251,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       body: Consumer2<AppService, CartService>(
         builder: (context, appService, cartService, child) {
-          final cartItems = cartService.items;
-          final cartTotal = cartService.total;
+          final isGroupOrder = widget.existingOrderId != null;
+          final cartItems = isGroupOrder ? (widget.preloadedItems ?? []) : cartService.items;
+          final subtotal = isGroupOrder ? (widget.preloadedTotal ?? 0.0) : cartService.subtotal;
+          final deliveryFee = cartService.deliveryFee;
+          final discount = isGroupOrder ? 0.0 : cartService.discount;
+          final total = subtotal + deliveryFee - discount;
 
           if (cartItems.isEmpty) {
             return _buildEmptyCart(context);
@@ -254,8 +275,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         _buildOrderSummary(
                           context,
                           cartItems,
-                          cartTotal,
-                          cartService,
+                          subtotal,
+                          deliveryFee,
+                          discount,
+                          total,
+                          cartService.itemCount,
+                          cartService.promoCode,
                         ),
                         const SizedBox(height: 24),
                         _buildDeliverySection(context),
@@ -267,7 +292,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                 ),
-                _buildCheckoutButton(context, appService, cartService),
+                _buildCheckoutButton(context, appService, cartService, total),
               ],
             ),
           );
@@ -312,8 +337,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildOrderSummary(
     BuildContext context,
     List<CartItem> cartItems,
-    double cartTotal,
-    CartService cartService,
+    double subtotal,
+    double deliveryFee,
+    double discount,
+    double total,
+    int itemCount,
+    String? promoCode,
   ) {
     return Card(
       child: Padding(
@@ -334,11 +363,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Sous-total (${cartService.itemCount} article${cartService.itemCount > 1 ? 's' : ''})',
+                  'Sous-total (${cartItems.length} article${cartItems.length > 1 ? 's' : ''})',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 Text(
-                  PriceFormatter.format(cartService.subtotal),
+                  PriceFormatter.format(subtotal),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -352,24 +381,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 Text(
-                  PriceFormatter.format(cartService.deliveryFee),
+                  PriceFormatter.format(deliveryFee),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
-            if (cartService.discount > 0) ...[
+            if (discount > 0) ...[
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Remise${cartService.promoCode != null ? ' (${cartService.promoCode})' : ''}',
+                    'Remise${promoCode != null ? ' ($promoCode)' : ''}',
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.green),
                   ),
                   Text(
-                    '-${PriceFormatter.format(cartService.discount)}',
+                    '-${PriceFormatter.format(discount)}',
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.green),
@@ -388,7 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                 ),
                 Text(
-                  PriceFormatter.format(cartService.total),
+                  PriceFormatter.format(total),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary,
@@ -647,9 +676,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     BuildContext context,
     AppService appService,
     CartService cartService,
+    double total,
   ) {
-    final total = cartService.total;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -691,7 +719,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 text: _isLoading ? 'Traitement...' : 'Confirmer la commande',
                 onPressed: _isLoading
                     ? null
-                    : () => _placeOrder(context, appService, cartService),
+                    : () => _placeOrder(context, appService, cartService, total),
                 isLoading: _isLoading,
               ),
             ),
@@ -705,6 +733,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     BuildContext context,
     AppService appService,
     CartService cartService,
+    double total,
   ) async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -715,15 +744,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
 
     try {
-      // Generate order ID first
-      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+      // Use existing order ID or generate new one
+      final orderId = widget.existingOrderId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
       // Navigate to payment screen
       final paymentSuccess = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (context) => PaymentScreen(
             orderId: orderId,
-            amount: cartService.total,
+            amount: total,
             paymentMethod: _selectedPayment,
             customerName: appService.currentUser?.name ?? 'Client',
             customerEmail: appService.currentUser?.email ?? '',
@@ -736,20 +765,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         // S'assurer qu'on a une adresse valide
         Address? addressToUse = _selectedAddress;
 
-        // Si aucune adresse sélectionnée mais qu'une adresse a été saisie manuellement,
-        // créer une adresse temporaire avec les informations disponibles
+        // Si aucune adresse sélectionnée mais qu'une adresse a été saisie manuellement
         if (addressToUse == null && _addressController.text.trim().isNotEmpty) {
           // Essayer d'extraire la ville et le code postal depuis le texte
           final addressText = _addressController.text.trim();
-          // Format attendu: "adresse, ville code_postal" ou similaire
           final parts = addressText.split(',').map((p) => p.trim()).toList();
           String city = '';
           String postalCode = '';
 
           if (parts.length > 1) {
-            // Si on a plusieurs parties, la dernière devrait contenir ville et code postal
             final lastPart = parts.last;
-            // Chercher un code postal (5 chiffres)
             final postalCodeMatch = RegExp(r'\b\d{5}\b').firstMatch(lastPart);
             if (postalCodeMatch != null) {
               postalCode = postalCodeMatch.group(0)!;
@@ -759,13 +784,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
           }
 
-          // Si on n'a toujours pas de ville ou code postal, utiliser des valeurs par défaut
-          if (city.isEmpty) {
-            city = 'Abidjan'; // Ville par défaut pour la Côte d'Ivoire
-          }
-          if (postalCode.isEmpty) {
-            postalCode = '01'; // Code postal par défaut simplifié
-          }
+          if (city.isEmpty) city = 'Abidjan';
+          if (postalCode.isEmpty) postalCode = '01';
 
           addressToUse = Address(
             id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
@@ -781,22 +801,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }
 
-        // Process the order after successful payment
-        final finalOrderId = await appService.placeOrderFromCartService(
-          addressToUse,
-          _selectedPayment,
-          cartService.items,
-          cartService.subtotal,
-          cartService.deliveryFee,
-          cartService.discount,
-          notes: _notesController.text.trim().isNotEmpty
-              ? _notesController.text.trim()
-              : null,
-        );
+        String finalOrderId;
+        if (widget.existingOrderId != null) {
+          // Finaliser la commande existante
+          finalOrderId = await appService.finalizeExistingOrder(
+            widget.existingOrderId!,
+            addressToUse,
+            _selectedPayment,
+            total,
+            notes: _notesController.text.trim().isNotEmpty
+                ? _notesController.text.trim()
+                : null,
+          );
+        } else {
+          // Créer une nouvelle commande
+          finalOrderId = await appService.placeOrderFromCartService(
+            addressToUse,
+            _selectedPayment,
+            cartService.items,
+            cartService.subtotal,
+            cartService.deliveryFee,
+            cartService.discount,
+            notes: _notesController.text.trim().isNotEmpty
+                ? _notesController.text.trim()
+                : null,
+          );
+        }
 
         if (finalOrderId.isNotEmpty && mounted) {
-          // Vider le panier après une commande réussie
-          cartService.clear();
+          // Vider le panier seulement si c'était une commande depuis le panier
+          if (widget.existingOrderId == null) {
+            cartService.clear();
+          }
 
           // Naviguer vers l'écran de suivi de commande
           await context.navigateToDeliveryTracking(finalOrderId);

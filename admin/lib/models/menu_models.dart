@@ -5,7 +5,6 @@ class MenuItem {
   final String? description;
   final double basePrice;
   final String? imageUrl;
-  final bool isActive;
   final bool isPopular;
   final bool isVegetarian;
   final bool isVegan;
@@ -22,7 +21,6 @@ class MenuItem {
     this.description,
     required this.basePrice,
     this.imageUrl,
-    this.isActive = true,
     this.isPopular = false,
     this.isVegetarian = false,
     this.isVegan = false,
@@ -40,7 +38,6 @@ class MenuItem {
     String? description,
     double? basePrice,
     String? imageUrl,
-    bool? isActive,
     bool? isPopular,
     bool? isVegetarian,
     bool? isVegan,
@@ -57,7 +54,6 @@ class MenuItem {
       description: description ?? this.description,
       basePrice: basePrice ?? this.basePrice,
       imageUrl: imageUrl ?? this.imageUrl,
-      isActive: isActive ?? this.isActive,
       isPopular: isPopular ?? this.isPopular,
       isVegetarian: isVegetarian ?? this.isVegetarian,
       isVegan: isVegan ?? this.isVegan,
@@ -77,7 +73,6 @@ class MenuItem {
       'description': description,
       'price': basePrice,
       'image_url': imageUrl,
-      'is_active': isActive,
       'is_popular': isPopular,
       'is_vegetarian': isVegetarian,
       'is_vegan': isVegan,
@@ -98,7 +93,6 @@ class MenuItem {
           (map['base_price'] as num?)?.toDouble() ??
           0.0,
       imageUrl: map['image_url'],
-      isActive: map['is_active'] ?? true,
       isPopular: map['is_popular'] ?? false,
       isVegetarian: map['is_vegetarian'] ?? false,
       isVegan: map['is_vegan'] ?? false,

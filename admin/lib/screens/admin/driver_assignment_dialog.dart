@@ -5,6 +5,7 @@ import '../../services/order_management_service.dart';
 import '../../models/driver.dart';
 import '../../models/order.dart';
 import '../../widgets/custom_button.dart';
+import '../../utils/price_formatter.dart';
 
 class DriverAssignmentDialog extends StatefulWidget {
   final Order order;
@@ -184,13 +185,13 @@ class _DriverAssignmentDialogState extends State<DriverAssignmentDialog> {
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.euro,
+                                    Icons.monetization_on,
                                     size: 16,
                                     color: Colors.grey[700],
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Total: ${widget.order.total.toStringAsFixed(2)}€',
+                                    'Total: ${PriceFormatter.format(widget.order.total)}',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,

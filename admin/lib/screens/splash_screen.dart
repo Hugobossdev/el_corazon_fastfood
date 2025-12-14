@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/admin_auth_service.dart';
-// import 'package:admin/theme.dart'; // Removed unused import
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -54,14 +51,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    final authService = Provider.of<AdminAuthService>(context, listen: false);
-    // You might want to actually check auth status here if not done in main
-    // For now, let's just navigate based on auth state if we can, or just go to wrapper
-    // But usually splash leads to a wrapper or checks auth.
-    // Let's assume the wrapper handles it, or we navigate to / which is the wrapper/auth check.
+    // Logic related to AdminAuthService could be placed here if needed.
+    // For now, we proceed to the next screen.
 
-    // If we want to be safe and just go to the route that handles auth logic:
-     _navigateToNextScreen();
+    _navigateToNextScreen();
   }
 
   void _navigateToNextScreen() {

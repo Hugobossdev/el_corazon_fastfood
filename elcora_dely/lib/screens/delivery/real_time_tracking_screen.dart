@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../services/app_service.dart';
 import '../../services/directions_service.dart';
 import '../../services/geocoding_service.dart' as geocoding;
+import '../../config/api_config.dart';
 import '../../models/order.dart';
 import '../../widgets/loading_widget.dart';
 import 'driver_profile_screen.dart';
@@ -91,18 +92,27 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen> {
           debugPrint('✅ Coordonnées client obtenues: $_customerLocation');
         } else {
           // Fallback: utiliser des coordonnées par défaut si le géocodage échoue
-          _customerLocation = const LatLng(5.3599, -4.0083);
+          _customerLocation = const LatLng(
+            ApiConfig.defaultRestaurantLat,
+            ApiConfig.defaultRestaurantLng,
+          );
           debugPrint('⚠️ Utilisation de coordonnées par défaut pour le client');
         }
       } catch (e) {
         debugPrint('❌ Erreur géocodage adresse client: $e');
         // Fallback: utiliser des coordonnées par défaut
-        _customerLocation = const LatLng(5.3599, -4.0083);
+        _customerLocation = const LatLng(
+          ApiConfig.defaultRestaurantLat,
+          ApiConfig.defaultRestaurantLng,
+        );
       }
 
       // Position du restaurant (à configurer selon votre restaurant)
       // TODO: Récupérer depuis la base de données ou configuration
-      _restaurantLocation = const LatLng(5.3600, -4.0080); // Exemple: Lomé, Togo
+      _restaurantLocation = const LatLng(
+        ApiConfig.defaultRestaurantLat,
+        ApiConfig.defaultRestaurantLng,
+      ); // Exemple: Lomé, Togo
 
       // Start tracking
       if (mounted) {
@@ -538,7 +548,11 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen> {
                   flex: 3,
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: _driverLocation ?? const LatLng(5.3599, -4.0083),
+                      target: _driverLocation ??
+                          const LatLng(
+                            ApiConfig.defaultRestaurantLat,
+                            ApiConfig.defaultRestaurantLng,
+                          ),
                       zoom: 15,
                     ),
                     onMapCreated: (GoogleMapController controller) {

@@ -6,6 +6,7 @@ import '../../services/order_management_service.dart';
 import '../../models/driver.dart';
 import '../../models/order.dart';
 import '../../widgets/custom_bar_chart.dart';
+import '../../utils/price_formatter.dart';
 
 class DriverHistoryScreen extends StatefulWidget {
   final Driver driver;
@@ -224,8 +225,8 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen>
               children: [
                 _buildSummaryItem(
                     'Revenu',
-                    '${(stats['total_revenue'] as double).toInt()} €',
-                    Icons.euro,
+                    PriceFormatter.format(stats['total_revenue'] is num ? (stats['total_revenue'] as num).toDouble() : 0.0),
+                    Icons.monetization_on,
                     Colors.green),
                 _buildSummaryItem('Commandes', '${stats['total_orders']}',
                     Icons.shopping_bag, Colors.blue),
@@ -302,7 +303,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${order.total.toInt()} €',
+                  PriceFormatter.format(order.total),
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 16),
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'database_service.dart';
+import '../utils/price_formatter.dart';
 
 /// Service pour gérer l'assignation des livreurs aux commandes
 class DeliveryAssignmentService extends ChangeNotifier {
@@ -428,7 +429,7 @@ class DeliveryAssignmentService extends ChangeNotifier {
         'user_id': deliveryPersonId,
         'title': 'Nouvelle livraison assignée',
         'message':
-            'Une nouvelle commande (#$orderNumber) de ${total.toStringAsFixed(2)}€ vous a été assignée. Adresse: $address',
+            'Une nouvelle commande (#$orderNumber) de ${PriceFormatter.format(total)} vous a été assignée. Adresse: $address',
         'type': 'order_assignment',
         'data': {'order_id': orderId},
         'is_read': false,

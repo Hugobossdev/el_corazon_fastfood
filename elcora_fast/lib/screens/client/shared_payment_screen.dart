@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:elcora_fast/models/group_payment.dart';
 import 'package:elcora_fast/services/database_service.dart';
@@ -35,6 +36,10 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
   String? _loadError;
   bool _isProcessing = false;
   SharedPaymentResult? _paymentResult;
+  
+  // Realtime subscriptions
+  RealtimeChannel? _participantsSubscription;
+  RealtimeChannel? _sessionSubscription;
 
   @override
   void initState() {
@@ -44,6 +49,8 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
 
   @override
   void dispose() {
+    _participantsSubscription?.unsubscribe();
+    _sessionSubscription?.unsubscribe();
     for (final controller in _phoneControllers) {
       controller.dispose();
     }
@@ -68,6 +75,7 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
       );
 
       _applySession(session);
+      _setupRealtimeSubscription(session.id);
     } catch (e) {
       setState(() {
         _loadError = e.toString();
@@ -78,6 +86,59 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _setupRealtimeSubscription(String sessionId) {
+    if (_participantsSubscription != null) return;
+
+    final supabase = _databaseService.supabase;
+
+    // Écouter les mises à jour de la session (statut global)
+    _sessionSubscription = supabase
+        .channel('public:group_payments:id=eq.$sessionId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'group_payments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: sessionId,
+          ),
+          callback: (payload) {
+            _refreshSession();
+          },
+        )
+        .subscribe();
+
+    // Écouter les mises à jour des participants (paiements individuels)
+    _participantsSubscription = supabase
+        .channel('public:group_payment_participants:group_payment_id=eq.$sessionId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'group_payment_participants',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'group_payment_id',
+            value: sessionId,
+          ),
+          callback: (payload) {
+            _refreshSession();
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> _refreshSession() async {
+    try {
+      final session = await _databaseService.getGroupPaymentSessionByOrderId(widget.orderId);
+      if (session != null && mounted) {
+        _applySession(session);
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du rafraîchissement de la session: $e');
     }
   }
 
@@ -810,12 +871,22 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
       return;
     }
 
-    for (final controller in _phoneControllers) {
-      if (controller.text.trim().isEmpty) {
-        _showError(
-            'Veuillez saisir les numéros de téléphone de tous les participants.',);
-        return;
+    // Si on traite TOUS les paiements, on vérifie que tous les numéros sont là pour les participants NON PAYÉS
+    bool hasMissingPhone = false;
+    for (int i = 0; i < _participants.length; i++) {
+      // Ignorer ceux déjà payés
+      final isPaid = _participantResults.length > i && (_participantResults[i]?.success ?? false);
+      if (isPaid) continue;
+
+      if (_phoneControllers[i].text.trim().isEmpty) {
+        hasMissingPhone = true;
+        break;
       }
+    }
+
+    if (hasMissingPhone) {
+      _showError('Veuillez saisir les numéros de téléphone pour tous les participants non payés.');
+      return;
     }
 
     setState(() {
@@ -823,6 +894,7 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
     });
 
     try {
+      // Mettre à jour les participants avec les données saisies
       for (int i = 0; i < _participants.length; i++) {
         _participants[i] = _participants[i].copyWith(
           phoneNumber: _phoneControllers[i].text,
@@ -830,86 +902,84 @@ class _SharedPaymentScreenState extends State<SharedPaymentScreen> {
         );
       }
 
-      final result = await _payDunyaService.processSharedPayment(
-        orderId: widget.orderId,
-        totalAmount: _session?.totalAmount ?? widget.totalAmount,
-        participants: _participants,
-        organizerName: _participants.first.name,
-        organizerEmail: _participants.first.email,
-      );
+      // Appeler le service PayDunya pour traiter les paiements en lot
+      // Note: Idéalement, cela devrait être fait un par un ou via une API batch si disponible
+      // Pour l'instant, on boucle ici
+      
+      int successCount = 0;
+      int processedCount = 0;
 
       for (int i = 0; i < _participants.length; i++) {
         final participant = _participants[i];
+        final isAlreadyPaid = _participantResults.length > i && (_participantResults[i]?.success ?? false);
+        
+        if (isAlreadyPaid) {
+          successCount++;
+          continue;
+        }
+
+        processedCount++;
         final participantId = participant.backendId;
         if (participantId == null) continue;
 
-        final resultEntry =
-            i < result.results.length ? result.results[i] : null;
-        final status = (resultEntry?.success ?? false)
-            ? GroupPaymentParticipantStatus.paid
-            : GroupPaymentParticipantStatus.failed;
+        try {
+          final result = await _payDunyaService.processMobileMoneyPayment(
+            orderId: '${widget.orderId}_${participant.userId}',
+            amount: participant.amount,
+            phoneNumber: participant.phoneNumber,
+            operator: participant.operator,
+            customerName: participant.name,
+            customerEmail: participant.email,
+          );
 
-        await _databaseService.updateGroupPaymentParticipant(
-          participantId: participantId,
-          phone: participant.phoneNumber,
-          operator: participant.operator,
-          paidAmount: (resultEntry?.success ?? false) ? participant.amount : 0,
-          status: status,
-          transactionId: resultEntry?.invoiceToken,
-          paymentResult: resultEntry == null
-              ? null
-              : {
-                  'invoice_token': resultEntry.invoiceToken,
-                  'invoice_url': resultEntry.invoiceUrl,
-                  'error': resultEntry.error,
-                  'success': resultEntry.success,
-                  'order_id': resultEntry.orderId,
-                  'processed_at': DateTime.now().toIso8601String(),
-                },
-        );
+          if (result.success) {
+            successCount++;
+          }
+
+          // Mise à jour DB
+          await _databaseService.updateGroupPaymentParticipant(
+            participantId: participantId,
+            phone: participant.phoneNumber,
+            operator: participant.operator,
+            paidAmount: result.success ? participant.amount : 0,
+            status: result.success
+                ? GroupPaymentParticipantStatus.paid
+                : GroupPaymentParticipantStatus.failed,
+            transactionId: result.invoiceToken,
+            paymentResult: {
+              'invoice_token': result.invoiceToken,
+              'invoice_url': result.invoiceUrl,
+              'error': result.error,
+              'success': result.success,
+              'order_id': result.orderId,
+              'processed_at': DateTime.now().toIso8601String(),
+            },
+          );
+        } catch (e) {
+          debugPrint('Erreur paiement participant $i: $e');
+        }
       }
 
+      // Rafraîchir
       if (_session != null) {
         await _databaseService.refreshGroupPaymentTotals(_session!.id);
       }
-      final refreshed = await _databaseService
-          .getGroupPaymentSessionByOrderId(widget.orderId);
-      if (refreshed != null) {
-        _applySession(refreshed);
-      }
-
-      // Vérifier le statut réel des paiements
-      final paidCount = result.results.where((r) => r.success == true).length;
-      final totalCount = result.results.length;
-
-      if (result.success && paidCount == totalCount) {
+      
+      // Feedback utilisateur
+      if (successCount == _participants.length) {
         _showSuccess('Tous les paiements ont été effectués avec succès !');
-
-        // Rafraîchir la session pour mettre à jour l'état
-        final refreshed = await _databaseService
-            .getGroupPaymentSessionByOrderId(widget.orderId);
-        if (refreshed != null) {
-          _applySession(refreshed);
-        }
-      } else if (paidCount > 0) {
-        _showWarning(
-            '$paidCount paiement(s) sur $totalCount ont été effectués. Veuillez compléter les paiements restants.',);
-
-        // Rafraîchir la session
-        final refreshed = await _databaseService
-            .getGroupPaymentSessionByOrderId(widget.orderId);
-        if (refreshed != null) {
-          _applySession(refreshed);
-        }
-      } else {
-        _showError('Aucun paiement n\'a pu être effectué. Veuillez réessayer.');
+      } else if (processedCount > 0) {
+        _showWarning('$successCount/${_participants.length} paiements réussis. Vérifiez les erreurs.');
       }
+      
     } catch (e) {
-      _showError('Erreur: ${e.toString()}');
+      _showError('Erreur globale lors du traitement: ${e.toString()}');
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 

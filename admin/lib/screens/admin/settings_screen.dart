@@ -278,9 +278,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                       width: 120,
                       child: CustomTextField(
                         controller: _rateControllers[zone]!,
-                        label: 'Tarif (€)',
+                        label: 'Tarif (CFA)',
                         keyboardType: TextInputType.number,
-                        prefixIcon: Icons.euro,
+                        prefixIcon: Icons.monetization_on,
                       ),
                     ),
                   ],

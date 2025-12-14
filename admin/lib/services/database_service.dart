@@ -181,35 +181,88 @@ class DatabaseService {
     }
   }
 
-  /// Récupérer les statistiques des articles commandés
+  /// Récupérer les statistiques des articles commandés avec gestion de réessai et erreur
   Future<List<Map<String, dynamic>>> getMenuItemsOrderStatistics({
     DateTime? startDate,
     DateTime? endDate,
     int? limit,
   }) async {
-    try {
-      // TODO: utiliser une vue ou une fonction RPC pour de vraies stats agrégées.
-      // Pour l'instant, on récupère les données brutes avec quelques filtres simples.
-      dynamic query = _supabase.from('order_items').select(
-            'menu_item_id, menu_item_name, quantity, total_price, created_at',
-          );
+    int retryCount = 0;
+    const maxRetries = 3;
 
-      if (startDate != null) {
-        query = query.gte('created_at', startDate.toIso8601String());
-      }
-      if (endDate != null) {
-        query = query.lte('created_at', endDate.toIso8601String());
-      }
-      if (limit != null) {
-        query = query.limit(limit);
-      }
+    while (retryCount < maxRetries) {
+      try {
+        // Pause incrémentale en cas de retry
+        if (retryCount > 0) {
+          await Future.delayed(Duration(milliseconds: 1000 * retryCount));
+        }
 
-      final response = await query;
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Error fetching menu stats: $e');
-      return [];
+        // Utiliser une requête simplifiée si possible pour alléger la charge
+        dynamic query = _supabase.from('order_items').select(
+              'menu_item_id, menu_item_name, quantity, total_price, created_at',
+            );
+
+        if (startDate != null) {
+          query = query.gte('created_at', startDate.toIso8601String());
+        }
+        if (endDate != null) {
+          query = query.lte('created_at', endDate.toIso8601String());
+        }
+        
+        // Appliquer la limite seulement si aucune autre agrégation n'est faite côté DB
+        // Ici on récupère brut, donc limit est ok
+        if (limit != null) {
+          query = query.limit(limit * 5); // Récupérer plus pour pouvoir agréger localement
+        } else {
+          // Limite par défaut de sécurité
+          query = query.limit(1000); 
+        }
+
+        final response = await query;
+        final List<Map<String, dynamic>> rawData = List<Map<String, dynamic>>.from(response);
+        
+        // Agrégation locale basique
+        final Map<String, Map<String, dynamic>> aggregated = {};
+        
+        for (var item in rawData) {
+          // Clé unique: ID ou Nom
+          final key = item['menu_item_id']?.toString() ?? item['menu_item_name']?.toString() ?? 'unknown';
+          final name = item['menu_item_name']?.toString() ?? 'Produit inconnu';
+          final qty = (item['quantity'] as num?)?.toInt() ?? 0;
+          final revenue = (item['total_price'] as num?)?.toDouble() ?? 0.0;
+          
+          if (!aggregated.containsKey(key)) {
+            aggregated[key] = {
+              'menu_item_id': item['menu_item_id'],
+              'menu_item_name': name,
+              'total_quantity': 0,
+              'total_revenue': 0.0,
+            };
+          }
+          
+          aggregated[key]!['total_quantity'] = (aggregated[key]!['total_quantity'] as int) + qty;
+          aggregated[key]!['total_revenue'] = (aggregated[key]!['total_revenue'] as double) + revenue;
+        }
+        
+        // Trier et limiter
+        var result = aggregated.values.toList();
+        result.sort((a, b) => (b['total_quantity'] as int).compareTo(a['total_quantity'] as int));
+        
+        if (limit != null && result.length > limit) {
+          result = result.take(limit).toList();
+        }
+        
+        return result;
+      } catch (e) {
+        retryCount++;
+        debugPrint('Error fetching menu stats (Attempt $retryCount/$maxRetries): $e');
+        if (retryCount >= maxRetries) {
+          // Retourner une liste vide après tous les échecs pour éviter de bloquer l'UI
+          return [];
+        }
+      }
     }
+    return [];
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {

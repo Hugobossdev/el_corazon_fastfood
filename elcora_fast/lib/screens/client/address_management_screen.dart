@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:elcora_fast/services/address_service.dart';
+import 'package:elcora_fast/services/geocoding_service.dart';
 import 'package:elcora_fast/models/address.dart';
 import 'package:elcora_fast/widgets/custom_text_field.dart';
 
@@ -446,9 +449,11 @@ class _AddressDialogState extends State<_AddressDialog> {
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
   final _postalCodeController = TextEditingController();
+  final GeocodingService _geocodingService = GeocodingService();
 
   AddressType _selectedType = AddressType.other;
   bool _isDefault = false;
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -490,12 +495,40 @@ class _AddressDialogState extends State<_AddressDialog> {
                     value?.isEmpty == true ? 'Nom requis' : null,
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                controller: _addressController,
-                label: 'Adresse',
-                hint: 'Rue, numéro, quartier',
-                validator: (value) =>
-                    value?.isEmpty == true ? 'Adresse requise' : null,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      controller: _addressController,
+                      label: 'Adresse',
+                      hint: 'Rue, numéro, quartier',
+                      validator: (value) =>
+                          value?.isEmpty == true ? 'Adresse requise' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: IconButton(
+                      onPressed: _isLocating ? null : _getCurrentLocation,
+                      icon: _isLocating
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location),
+                      tooltip: 'Utiliser ma position',
+                      style: IconButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -624,6 +657,76 @@ class _AddressDialogState extends State<_AddressDialog> {
 
       widget.onSave(addressData);
       Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLocating = true);
+
+    try {
+      // 1. Vérifier les permissions
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Le service de localisation est désactivé.');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Les permissions de localisation sont refusées.');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception(
+            'Les permissions sont définitivement refusées. Veuillez les activer dans les paramètres.');
+      }
+
+      // 2. Obtenir la position
+      final position = await Geolocator.getCurrentPosition();
+
+      // 3. Géocodage inverse
+      final address = await _geocodingService.reverseGeocode(
+        LatLng(position.latitude, position.longitude),
+      );
+
+      if (address != null && mounted) {
+        // Essayer de parser l'adresse pour remplir la ville et le code postal si possible
+        // Note: L'adresse formatée de Google Maps contient généralement tout
+        // Pour faire simple, on met tout dans le champ adresse pour l'instant
+        // Idéalement, GeocodingService devrait retourner un objet structuré
+        
+        setState(() {
+          _addressController.text = address;
+          // Si l'adresse contient "Abidjan", on pré-remplit la ville
+          if (address.contains('Abidjan')) {
+            _cityController.text = 'Abidjan';
+          }
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Adresse trouvée !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        throw Exception('Impossible de trouver l\'adresse pour cette position.');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLocating = false);
+      }
     }
   }
 }

@@ -26,11 +26,14 @@ class ChatMessage {
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
       id: json['id'] as String?,
-      roomId: json['room_id'] as String,
+      // Map order_id (from messages table) to roomId, or use room_id if available
+      roomId: (json['room_id'] ?? json['order_id']) as String, 
       senderId: json['sender_id'] as String,
-      messageType: json['message_type'] as String? ?? 'text',
+      // Map type (from messages table) to messageType
+      messageType: (json['message_type'] ?? json['type']) as String? ?? 'text',
       content: json['content'] as String,
-      mediaUrl: json['media_url'] as String?,
+      // Map image_url (from messages table) to mediaUrl
+      mediaUrl: (json['media_url'] ?? json['image_url']) as String?,
       isRead: json['is_read'] as bool? ?? false,
       readAt: json['read_at'] != null
           ? DateTime.parse(json['read_at'] as String)

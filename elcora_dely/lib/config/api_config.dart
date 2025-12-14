@@ -23,6 +23,11 @@ class ApiConfig {
   static const String environment = 'development';
   static const bool debugMode = kDebugMode;
 
+  // Configuration du restaurant
+  static const double defaultRestaurantLat = 5.3600;
+  static const double defaultRestaurantLng = -4.0080;
+  static const String defaultRestaurantName = 'El Corazon';
+
   /// Vérifie si toutes les clés API sont configurées
   static bool get isFullyConfigured {
     return supabaseUrl.isNotEmpty &&

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:elcora_fast/services/app_service.dart';
 import 'package:elcora_fast/services/realtime_tracking_service.dart';
 import 'package:elcora_fast/services/database_service.dart';
 import 'package:elcora_fast/services/geocoding_service.dart';
+import 'package:elcora_fast/services/directions_service.dart';
 import 'package:elcora_fast/models/order.dart';
 import 'package:elcora_fast/widgets/custom_button.dart';
 import 'package:elcora_fast/utils/price_formatter.dart';
@@ -32,11 +34,17 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   String? _estimatedDeliveryTime;
   Map<String, dynamic>? _driverProfile;
 
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  LatLng? _deliveryLatLng;
+
   StreamSubscription<Order>? _orderUpdatesSubscription;
   StreamSubscription<Map<String, dynamic>>? _deliveryLocationSubscription;
   RealtimeTrackingService? _trackingService;
   DatabaseService? _databaseService;
   GeocodingService? _geocodingService;
+  DirectionsService? _directionsService;
   Timer? _estimatedTimeUpdateTimer;
 
   @override
@@ -74,6 +82,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
       final appService = Provider.of<AppService>(context, listen: false);
       _databaseService = appService.databaseService;
       _geocodingService = GeocodingService();
+      _directionsService = DirectionsService();
 
       // Charger la commande depuis la base de données
       try {
@@ -125,6 +134,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
 
       // Charger la dernière position de livraison seulement si la commande existe
       if (_order != null) {
+        await _geocodeDeliveryAddress();
         await _loadLatestDeliveryLocation();
       }
 
@@ -155,6 +165,136 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     }
   }
 
+  Future<void> _geocodeDeliveryAddress() async {
+    if (_order == null || _geocodingService == null) return;
+    try {
+      final latLng =
+          await _geocodingService!.geocodeAddress(_order!.deliveryAddress);
+      if (latLng != null && mounted) {
+        setState(() {
+          _deliveryLatLng = latLng;
+        });
+        _updateMapMarkers();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error geocoding delivery address: $e');
+    }
+  }
+
+  void _updateMapMarkers() {
+    if (!mounted) return;
+
+    final Set<Marker> markers = {};
+
+    // Marker client (destination)
+    if (_deliveryLatLng != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('destination'),
+          position: _deliveryLatLng!,
+          infoWindow: InfoWindow(
+            title: 'Votre adresse',
+            snippet: _order?.deliveryAddress,
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+
+    // Marker livreur
+    if (_deliveryLocation != null) {
+      final driverPos = LatLng(
+        _deliveryLocation!['latitude'] as double,
+        _deliveryLocation!['longitude'] as double,
+      );
+
+      markers.add(
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: driverPos,
+          infoWindow: const InfoWindow(
+            title: 'Livreur',
+            snippet: 'En route',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          rotation: (_deliveryLocation!['heading'] as num?)?.toDouble() ?? 0.0,
+        ),
+      );
+
+      // Update camera if map is ready
+      if (_mapController != null) {
+        if (_deliveryLatLng != null) {
+          // Fit bounds if both exist
+          _fitBounds(driverPos, _deliveryLatLng!);
+          _getDirections(driverPos, _deliveryLatLng!);
+        } else {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLng(driverPos),
+          );
+        }
+      }
+    }
+
+    setState(() {
+      _markers = markers;
+    });
+  }
+
+  Future<void> _getDirections(LatLng origin, LatLng destination) async {
+    if (_directionsService == null) return;
+
+    try {
+      final routeInfo = await _directionsService!.getRoute(
+        origin: origin,
+        destination: destination,
+      );
+
+      if (routeInfo != null && mounted) {
+        setState(() {
+          _polylines = {
+            Polyline(
+              polylineId: const PolylineId('route'),
+              points: routeInfo.polylinePoints,
+              color: Theme.of(context).colorScheme.primary,
+              width: 5,
+            ),
+          };
+
+          // Update estimated time with traffic info if available
+          if (routeInfo.durationInTrafficMinutes != null) {
+            _estimatedDeliveryTime =
+                '${routeInfo.durationInTrafficMinutes} min';
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error getting directions: $e');
+    }
+  }
+
+  void _fitBounds(LatLng p1, LatLng p2) {
+    LatLngBounds bounds;
+    if (p1.latitude > p2.latitude && p1.longitude > p2.longitude) {
+      bounds = LatLngBounds(southwest: p2, northeast: p1);
+    } else if (p1.longitude > p2.longitude) {
+      bounds = LatLngBounds(
+        southwest: LatLng(p1.latitude, p2.longitude),
+        northeast: LatLng(p2.latitude, p1.longitude),
+      );
+    } else if (p1.latitude > p2.latitude) {
+      bounds = LatLngBounds(
+        southwest: LatLng(p2.latitude, p1.longitude),
+        northeast: LatLng(p1.latitude, p2.longitude),
+      );
+    } else {
+      bounds = LatLngBounds(southwest: p1, northeast: p2);
+    }
+
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 100),
+    );
+  }
+
   Future<void> _loadLatestDeliveryLocation() async {
     try {
       if (_databaseService == null) return;
@@ -182,6 +322,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
 
         // Calculer le temps estimé de livraison
         await _calculateEstimatedDeliveryTime();
+        _updateMapMarkers();
       }
     } catch (e) {
       debugPrint('⚠️ Error loading delivery location: $e');
@@ -255,6 +396,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
 
             // Recalculer le temps estimé
             _calculateEstimatedDeliveryTime();
+            _updateMapMarkers();
           }
         },
         onError: (error) {
@@ -859,68 +1001,32 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
             ),
             const SizedBox(height: 16),
             Container(
-              height: 200,
+              height: 300,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 48,
-                      color: Colors.red[400],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Livreur en route',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Dernière mise à jour: ${_formatDateTime(_deliveryLocation!['timestamp'] as DateTime)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                    ),
-                    if (_estimatedDeliveryTime != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Arrivée estimée: $_estimatedDeliveryTime',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _deliveryLocation != null
+                        ? LatLng(
+                            _deliveryLocation!['latitude'] as double,
+                            _deliveryLocation!['longitude'] as double,
+                          )
+                        : (_deliveryLatLng ?? const LatLng(5.3600, -4.0080)), // Default fallback (Abidjan usually)
+                    zoom: 15,
+                  ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    _updateMapMarkers(); // Ensure markers are shown
+                  },
+                  markers: _markers,
+                  polylines: _polylines,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: true,
                 ),
               ),
             ),

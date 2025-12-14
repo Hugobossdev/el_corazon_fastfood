@@ -51,10 +51,12 @@ class _MenuItemFormDialogState extends State<MenuItemFormDialog>
 
       try {
         final menuService = Provider.of<MenuService>(context, listen: false);
-        final productName = _nameController.text.isNotEmpty ? _nameController.text : 'product';
-        
-        final imageUrl = await menuService.uploadProductImage(image, productName);
-        
+        final productName =
+            _nameController.text.isNotEmpty ? _nameController.text : 'product';
+
+        final imageUrl =
+            await menuService.uploadProductImage(image, productName);
+
         if (imageUrl != null && mounted) {
           setState(() {
             _imageUrlController.text = imageUrl;
@@ -75,7 +77,6 @@ class _MenuItemFormDialogState extends State<MenuItemFormDialog>
       }
     }
   }
-
 
   @override
   void initState() {
@@ -222,7 +223,8 @@ class _MenuItemFormDialogState extends State<MenuItemFormDialog>
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
-                    image: _imageUrlController.text.isNotEmpty && !_isUploadingImage
+                    image: _imageUrlController.text.isNotEmpty &&
+                            !_isUploadingImage
                         ? DecorationImage(
                             image: NetworkImage(_imageUrlController.text),
                             fit: BoxFit.cover,
@@ -384,7 +386,6 @@ class _MenuItemFormDialogState extends State<MenuItemFormDialog>
         description: _descriptionController.text,
         basePrice: double.parse(_priceController.text),
         imageUrl: _imageUrlController.text,
-        isActive: true,
         isAvailable: _isAvailable,
         isPopular: _isPopular,
         isVegetarian: _isVegetarian,

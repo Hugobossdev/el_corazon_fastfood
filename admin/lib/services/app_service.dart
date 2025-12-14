@@ -286,7 +286,7 @@ class AppService extends ChangeNotifier {
     try {
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
       final subtotal = cartTotal;
-      const deliveryFee = 5.0;
+      const deliveryFee = 1000.0;
       final total = subtotal + deliveryFee;
 
       // Create order data for database
@@ -353,7 +353,7 @@ class AppService extends ChangeNotifier {
 
       // Award loyalty points for clients
       if (_currentUser?.role == UserRole.client) {
-        final pointsEarned = (total / 10).round(); // 1 point per 10€
+        final pointsEarned = (total / 100).round(); // 1 point per 100 CFA
         _currentUser = _currentUser!.copyWith(
           loyaltyPoints: _currentUser!.loyaltyPoints + pointsEarned,
         );

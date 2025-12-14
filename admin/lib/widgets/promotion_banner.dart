@@ -26,7 +26,7 @@ class _PromotionBannerState extends State<PromotionBanner>
     },
     {
       'title': '🍟 Menu Complet',
-      'subtitle': 'Seulement 15€',
+      'subtitle': 'Seulement 15 000 CFA',
       'description': 'Burger + Frites + Boisson',
       'color': Colors.blue,
       'gradient': [Colors.blue, Colors.indigo],
@@ -42,7 +42,7 @@ class _PromotionBannerState extends State<PromotionBanner>
     },
     {
       'title': '🚚 Livraison Gratuite',
-      'subtitle': 'Commande minimum 25€',
+      'subtitle': 'Commande minimum 25 000 CFA',
       'description': 'Dans un rayon de 5km',
       'color': Colors.purple,
       'gradient': [Colors.purple, Colors.deepPurple],
@@ -216,20 +216,20 @@ class _PromotionBannerState extends State<PromotionBanner>
                     Text(
                       promotion['title'],
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       promotion['subtitle'],
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -237,8 +237,8 @@ class _PromotionBannerState extends State<PromotionBanner>
                     Text(
                       promotion['description'],
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

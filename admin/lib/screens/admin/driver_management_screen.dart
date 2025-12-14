@@ -131,7 +131,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -251,10 +251,10 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
         decoration: BoxDecoration(
           color: Colors.blue[50],
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue.withOpacity(0.1)),
+          border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
           image: const DecorationImage(
             image: NetworkImage(
-                'https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg'),
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/2000px-World_map_blank_without_borders.svg.png'),
             fit: BoxFit.cover,
             opacity: 0.1,
           ),
@@ -298,13 +298,13 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                          blurRadius: 4, color: Colors.black.withOpacity(0.2))
+                          blurRadius: 4, color: Colors.black.withValues(alpha: 0.2))
                     ],
                   ),
                   child: CircleAvatar(
                     radius: 14,
                     backgroundColor:
-                        _getStatusColor(driver.status).withOpacity(0.2),
+                        _getStatusColor(driver.status).withValues(alpha: 0.2),
                     child: Text(
                       driver.name[0],
                       style: TextStyle(
@@ -366,10 +366,10 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
+            color: color.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -406,7 +406,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -417,7 +417,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
               leading: CircleAvatar(
                 radius: 24,
                 backgroundColor:
-                    _getStatusColor(driver.status).withOpacity(0.1),
+                    _getStatusColor(driver.status).withValues(alpha: 0.1),
                 child: Text(
                   driver.name[0].toUpperCase(),
                   style: TextStyle(
@@ -442,7 +442,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(driver.status).withOpacity(0.1),
+                  color: _getStatusColor(driver.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

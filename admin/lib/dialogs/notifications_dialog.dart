@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/app_service.dart';
 import 'package:provider/provider.dart';
+import '../utils/price_formatter.dart';
 
 class NotificationsDialog extends StatefulWidget {
   const NotificationsDialog({super.key});
@@ -193,7 +194,7 @@ class _NotificationsDialogState extends State<NotificationsDialog> {
       notifications.add({
         'id': 'order_${order.id}',
         'title': '📦 Nouvelle commande',
-        'message': 'Commande #${order.id.substring(0, 8).toUpperCase()} - ${order.total.toStringAsFixed(2)}€',
+        'message': 'Commande #${order.id.substring(0, 8).toUpperCase()} - ${PriceFormatter.format(order.total)}',
         'time': order.orderTime,
         'type': 'order',
         'icon': Icons.shopping_cart,

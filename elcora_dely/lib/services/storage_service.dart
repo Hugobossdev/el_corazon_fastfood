@@ -383,22 +383,24 @@ class StorageService extends ChangeNotifier {
         );
 
     // Déterminer le dossier selon le type de document
+    // Utiliser l'ID utilisateur comme dossier racine pour respecter les politiques RLS standard
+    // Structure: userId/type/filename
     String folder;
     switch (documentType) {
       case 'profile':
-        folder = 'profiles';
+        folder = '$userId/profiles';
         break;
       case 'license':
-        folder = 'licenses';
+        folder = '$userId/licenses';
         break;
       case 'idcard':
-        folder = 'id-cards';
+        folder = '$userId/id-cards';
         break;
       case 'vehicle':
-        folder = 'vehicles';
+        folder = '$userId/vehicles';
         break;
       default:
-        folder = 'documents';
+        folder = '$userId/documents';
     }
 
     return await uploadFileBytes(

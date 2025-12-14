@@ -96,9 +96,8 @@ class CategoryManagementService extends ChangeNotifier {
             .select('*')
             .order('sort_order', ascending: true);
 
-        _categories = (response as List)
-            .map((data) => Category.fromMap(data))
-            .toList();
+        _categories =
+            (response as List).map((data) => Category.fromMap(data)).toList();
 
         debugPrint(
           'CategoryManagementService: ${_categories.length} catégories chargées',
@@ -109,9 +108,10 @@ class CategoryManagementService extends ChangeNotifier {
         debugPrint(
           'CategoryManagementService: Tentative $retryCount/$maxRetries échouée - $e',
         );
-        
+
         if (retryCount >= maxRetries) {
-          _error = 'Impossible de charger les catégories après plusieurs tentatives. Vérifiez votre connexion.';
+          _error =
+              'Impossible de charger les catégories après plusieurs tentatives. Vérifiez votre connexion.';
           _categories = [];
           debugPrint(
             'CategoryManagementService: Erreur fatale chargement catégories - $e',
@@ -119,7 +119,7 @@ class CategoryManagementService extends ChangeNotifier {
         }
       }
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
@@ -209,18 +209,15 @@ class CategoryManagementService extends ChangeNotifier {
         return false;
       }
 
-      await _supabase
-          .from('menu_categories')
-          .update({
-            'name': category.name,
-            'display_name': category.name,
-            'emoji': '🍽️',
-            'description': category.description,
-            'sort_order': category.displayOrder,
-            'is_active': category.isActive,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', category.id);
+      await _supabase.from('menu_categories').update({
+        'name': category.name,
+        'display_name': category.name,
+        'emoji': '🍽️',
+        'description': category.description,
+        'sort_order': category.displayOrder,
+        'is_active': category.isActive,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', category.id);
 
       final index = _categories.indexWhere((c) => c.id == category.id);
       if (index != -1) {
@@ -284,32 +281,37 @@ class CategoryManagementService extends ChangeNotifier {
   /// Réorganiser les catégories
   Future<bool> reorderCategories(List<Category> reorderedCategories) async {
     try {
-      _isLoading = true;
-      notifyListeners();
-
+      // Mise à jour optimiste locale
+      // On met à jour les sort_order (displayOrder) des objets en mémoire
       for (int i = 0; i < reorderedCategories.length; i++) {
-        await _supabase
-            .from('menu_categories')
-            .update({
-              'sort_order': i + 1,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', reorderedCategories[i].id);
+        reorderedCategories[i] =
+            reorderedCategories[i].copyWith(displayOrder: i + 1);
       }
 
-      _categories = reorderedCategories;
-      _sortCategories();
-
-      _isLoading = false;
+      // On remplace la liste locale immédiatement pour refléter le changement dans l'UI
+      _categories = List.from(reorderedCategories);
       notifyListeners();
+
+      // Mettre à jour en base de données en parallèle
+      final updates = <Future>[];
+      for (int i = 0; i < _categories.length; i++) {
+        updates.add(_supabase.from('menu_categories').update({
+          'sort_order': i + 1,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', _categories[i].id));
+      }
+
+      await Future.wait(updates);
+
       return true;
     } catch (e) {
       _error = e.toString();
-      _isLoading = false;
       notifyListeners();
       debugPrint(
         'CategoryManagementService: Erreur réorganisation catégories - $e',
       );
+      // En cas d'erreur, on recharge pour rétablir la vérité
+      await _loadCategories();
       return false;
     }
   }
@@ -339,9 +341,8 @@ class CategoryManagementService extends ChangeNotifier {
 
       final items = menuItems as List;
       final totalItems = items.length;
-      final activeItems = items
-          .where((item) => item['is_available'] == true)
-          .length;
+      final activeItems =
+          items.where((item) => item['is_available'] == true).length;
 
       // Calculer le revenu total de la catégorie
       final revenueResponse = await _supabase
@@ -378,9 +379,8 @@ class CategoryManagementService extends ChangeNotifier {
         'inactive_items': totalItems - activeItems,
         'total_revenue': revenue,
         'average_rating': avgRating,
-        'popularity_score': totalItems > 0
-            ? (activeItems / totalItems) * 100
-            : 0.0,
+        'popularity_score':
+            totalItems > 0 ? (activeItems / totalItems) * 100 : 0.0,
       };
     } catch (e) {
       debugPrint('CategoryManagementService: Erreur stats catégorie - $e');

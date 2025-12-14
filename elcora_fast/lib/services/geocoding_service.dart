@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:elcora_fast/config/api_config.dart';
 
 class GeocodingService extends ChangeNotifier {
@@ -47,7 +48,7 @@ class GeocodingService extends ChangeNotifier {
           return latLng;
         } else {
           debugPrint(
-            'GeocodingService: Erreur de géocodage - ${data['status']}',
+            'GeocodingService: Aucun résultat trouvé pour cette adresse (${data['status']})',
           );
           return null;
         }
@@ -221,25 +222,4 @@ class GeocodingService extends ChangeNotifier {
     _addressCache.clear();
     debugPrint('GeocodingService: Cache vidé');
   }
-}
-
-class LatLng {
-  final double latitude;
-  final double longitude;
-
-  const LatLng(this.latitude, this.longitude);
-
-  @override
-  String toString() => 'LatLng($latitude, $longitude)';
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is LatLng &&
-        other.latitude == latitude &&
-        other.longitude == longitude;
-  }
-
-  @override
-  int get hashCode => latitude.hashCode ^ longitude.hashCode;
 }

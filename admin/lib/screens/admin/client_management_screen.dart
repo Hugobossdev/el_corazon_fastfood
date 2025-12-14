@@ -6,6 +6,7 @@ import '../../models/user.dart';
 import '../../models/order.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../utils/dialog_helper.dart';
+import '../../utils/price_formatter.dart';
 
 class ClientManagementScreen extends StatefulWidget {
   const ClientManagementScreen({super.key});
@@ -252,13 +253,13 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                                       ),
                                       const SizedBox(width: 16),
                                       Icon(
-                                        Icons.euro,
+                                        Icons.monetization_on,
                                         size: 14,
                                         color: Colors.grey[600],
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '${totalSpent.toStringAsFixed(2)}€',
+                                        PriceFormatter.format(totalSpent),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
@@ -396,11 +397,11 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
               _buildDetailRow('Commandes annulées', '$cancelledOrders'),
               _buildDetailRow(
                 'Total dépensé',
-                '${totalSpent.toStringAsFixed(2)}€',
+                PriceFormatter.format(totalSpent),
               ),
               _buildDetailRow(
                 'Panier moyen',
-                '${averageOrderValue.toStringAsFixed(2)}€',
+                PriceFormatter.format(averageOrderValue),
               ),
               _buildDetailRow(
                 'Membre depuis',
@@ -483,7 +484,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                             'Commande #${order.id.substring(0, 8).toUpperCase()}',
                           ),
                           subtitle: Text(
-                            '${order.total.toStringAsFixed(2)}€ - ${order.status.displayName}',
+                            '${PriceFormatter.format(order.total)} - ${order.status.displayName}',
                           ),
                           trailing: Text(
                             '${order.orderTime.day}/${order.orderTime.month}/${order.orderTime.year}',

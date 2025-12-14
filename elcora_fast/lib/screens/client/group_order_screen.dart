@@ -8,6 +8,7 @@ import 'package:elcora_fast/services/database_service.dart';
 import 'package:elcora_fast/models/user.dart';
 import 'package:elcora_fast/models/order.dart';
 import 'package:elcora_fast/models/menu_item.dart';
+import 'package:elcora_fast/models/cart_item.dart';
 import 'package:elcora_fast/theme.dart';
 import 'package:elcora_fast/widgets/navigation_helper.dart';
 import 'package:elcora_fast/utils/price_formatter.dart';
@@ -727,13 +728,13 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                       Icon(
                         Icons.filter_alt_off,
                         size: 64,
-                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Aucun item ne correspond aux filtres',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 16,
                         ),
                       ),
@@ -882,7 +883,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
         // Résumé du panier
         Container(
           padding: const EdgeInsets.all(16),
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           child: Row(
             children: [
               const Icon(Icons.shopping_cart, color: AppColors.primary),
@@ -896,7 +897,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
               const Spacer(),
               Text(
                 '${_groupItems.length} article(s)',
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -909,23 +910,23 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.shopping_cart_outlined,
                         size: 64,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Le panier est vide',
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Ajoutez des articles depuis le menu',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -968,10 +969,10 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               border: Border(
                 top: BorderSide(
-                  color: AppColors.textSecondary.withValues(alpha: 0.2),
+                  color: Theme.of(context).dividerColor.withOpacity(0.2),
                 ),
               ),
             ),
@@ -1688,8 +1689,25 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
       if (context.mounted) {
         Navigator.of(context).pop();
 
+        // Convertir les items de commande en items de panier pour le checkout
+        final cartItems = _groupItems.map((item) {
+          return CartItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(), // ID temporaire
+            menuItemId: item.menuItemId,
+            name: item.name,
+            price: item.unitPrice,
+            quantity: item.quantity,
+            imageUrl: item.menuItemImage,
+            customizations: item.customizations,
+          );
+        }).toList();
+
         // Naviguer vers l'écran de checkout avec l'ID de la commande
-        await context.navigateToCheckout();
+        await context.navigateToCheckout(
+          existingOrderId: orderId,
+          items: cartItems,
+          total: total,
+        );
       }
     } catch (e) {
       debugPrint('❌ Erreur lors de la création de la commande: $e');

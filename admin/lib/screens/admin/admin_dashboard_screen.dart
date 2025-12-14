@@ -34,11 +34,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeData();
+      if (mounted) {
+        _initializeData();
+      }
     });
   }
 
   Future<void> _initializeData() async {
+    if (!mounted) return;
     final appService = context.read<AppService>();
     if (!appService.isInitialized) {
       await appService.initializeWithAdminUser();
@@ -177,9 +180,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Widget _buildAnalyticsTab(
       BuildContext context, AnalyticsService analyticsService) {
-    // Determine date range based on selection (defaulting to last 7 days for charts)
-    final endDate = DateTime.now();
-    final startDate = endDate.subtract(const Duration(days: 7));
+    
+    // Déclencher le chargement des données si elles sont vides et qu'on ne charge pas déjà
+    // Utiliser addPostFrameCallback pour éviter les updates pendant le build
+    if (analyticsService.analyticsData.isEmpty && !analyticsService.isLoading && analyticsService.error == null) {
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(const Duration(days: 7));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        analyticsService.loadAnalyticsData(startDate: startDate, endDate: endDate);
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -188,53 +198,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         children: [
           _buildDateRangeSelector(context),
           const SizedBox(height: 20),
-          // Utilisation d'un seul FutureBuilder pour toutes les données
-          FutureBuilder<Map<String, dynamic>>(
-            future: analyticsService.fetchAllAnalytics(
-                startDate: startDate, endDate: endDate),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox(
-                  height: 400,
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              if (snapshot.hasError || (snapshot.data != null && snapshot.data!.containsKey('error'))) {
-                return Center(
-                  child: Column(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                      const SizedBox(height: 16),
-                      Text('Erreur: ${snapshot.error ?? snapshot.data?['error']}'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {}); // Forcer le rechargement
-                        },
-                        child: const Text('Réessayer'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final data = snapshot.data ?? {};
-              final revenueData = data['revenue'] as Map<String, dynamic>? ?? {};
-              final ordersData = data['orders'] as Map<String, dynamic>? ?? {};
-              final categoryData = data['categories'] as Map<String, dynamic>? ?? {};
-
-              return Column(
+          
+          if (analyticsService.isLoading)
+            const SizedBox(
+              height: 400,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (analyticsService.error != null)
+            Center(
+              child: Column(
                 children: [
-                  _buildRevenueChart(context, revenueData),
-                  const SizedBox(height: 20),
-                  _buildOrdersChart(context, ordersData),
-                  const SizedBox(height: 20),
-                  _buildCategoryPerformance(context, categoryData),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text('Erreur: ${analyticsService.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final endDate = DateTime.now();
+                      final startDate = endDate.subtract(const Duration(days: 7));
+                      analyticsService.loadAnalyticsData(startDate: startDate, endDate: endDate);
+                    },
+                    child: const Text('Réessayer'),
+                  ),
                 ],
-              );
-            },
-          ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                _buildRevenueChart(
+                    context, analyticsService.analyticsData['revenue'] ?? {}),
+                const SizedBox(height: 20),
+                _buildOrdersChart(
+                    context, analyticsService.analyticsData['orders'] ?? {}),
+                const SizedBox(height: 20),
+                _buildCategoryPerformance(
+                    context, analyticsService.analyticsData['categories'] ?? {}),
+              ],
+            ),
         ],
       ),
     );
@@ -556,11 +557,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Widget _buildTopSellingItems(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-        future: DatabaseService().getMenuItemsOrderStatistics(
-          startDate: DateTime.now().subtract(const Duration(days: 30)),
-          limit: 5,
-        ),
+        future: _getTopSellingItems(),
         builder: (context, snapshot) {
+          // ... rest of the code is same but handling states better
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Card(
                 child: Padding(
@@ -586,7 +585,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  if (topProducts.isEmpty)
+                  if (snapshot.hasError)
+                    Center(child: Text('Erreur: ${snapshot.error}'))
+                  else if (topProducts.isEmpty)
                     const Center(child: Text('Aucune donnée'))
                   else
                     ...topProducts.asMap().entries.map((entry) {
@@ -638,6 +639,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
           );
         });
+  }
+
+  // Cache/Store for top selling items to avoid reload on every build
+  Future<List<Map<String, dynamic>>>? _topSellingItemsFuture;
+
+  Future<List<Map<String, dynamic>>> _getTopSellingItems() {
+    _topSellingItemsFuture ??= DatabaseService().getMenuItemsOrderStatistics(
+      startDate: DateTime.now().subtract(const Duration(days: 30)),
+      limit: 5,
+    );
+    return _topSellingItemsFuture!;
   }
 
   // --- Widgets for Analytics Tab ---

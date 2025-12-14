@@ -84,21 +84,21 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
                           : ElevatedButton(
                               onPressed: () async {
                                 Navigator.pop(context);
-                                final success = await service.assignBadgeToDriver(
-                                  widget.driver!.id,
-                                  badge['id'],
-                                );
-                                if (success) {
-                                  _loadData();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Badge attribué avec succès'),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
+                                  final success = await service.assignBadgeToDriver(
+                                    widget.driver!.id,
+                                    badge['id'],
+                                  );
+                                  if (success) {
+                                    _loadData();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Badge attribué avec succès'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
                                   }
-                                }
                               },
                               child: const Text('Attribuer'),
                             ),
@@ -293,7 +293,7 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
         gradient: LinearGradient(
           colors: [
             Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8)
+            Theme.of(context).primaryColor.withValues(alpha: 0.8)
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -301,7 +301,7 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -388,7 +388,7 @@ class _DriverDetailedStatsScreenState extends State<DriverDetailedStatsScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),

@@ -1,9 +1,8 @@
-// import 'package:freezed_annotation/freezed_annotation.dart'; // TODO: Décommenter après génération
-import 'package:elcora_fast/models/user.dart' as user_models;
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:elcora_fast/models/user.dart';
 
-// TODO: Générer les fichiers avec: flutter pub run build_runner build --delete-conflicting-outputs
-// part 'freezed_user.freezed.dart';
-// part 'freezed_user.g.dart';
+part 'freezed_user.freezed.dart';
+part 'freezed_user.g.dart';
 
 /// Exemple de modèle User avec Freezed
 ///
@@ -11,51 +10,40 @@ import 'package:elcora_fast/models/user.dart' as user_models;
 /// ```bash
 /// flutter pub run build_runner build --delete-conflicting-outputs
 /// ```
-// TODO: Décommenter après génération des fichiers
-// @freezed
-class FreezedUser /* with _$FreezedUser */ {
-  final String id;
-  final String name;
-  final String email;
-  final String phone;
-  final user_models.UserRole role;
-  final String? profileImage;
-  final int loyaltyPoints;
-  final List<String> badges;
-  final DateTime createdAt;
-  final bool isOnline;
+@freezed
+class FreezedUser with _$FreezedUser {
+  const FreezedUser._();
 
-  const FreezedUser({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-    required this.createdAt,
-    this.profileImage,
-    this.loyaltyPoints = 0,
-    this.badges = const [],
-    this.isOnline = false,
-  }); // = _FreezedUser;
+  const factory FreezedUser({
+    required String id,
+    required String name,
+    required String email,
+    required String phone,
+    required UserRole role,
+    required DateTime createdAt,
+    String? profileImage,
+    @Default(0) int loyaltyPoints,
+    @Default([]) List<String> badges,
+    @Default(false) bool isOnline,
+  }) = _FreezedUser;
 
-  // TODO: Décommenter après génération
-  // factory FreezedUser.fromJson(Map<String, dynamic> json) =>
-  //     _$FreezedUserFromJson(json);
+  factory FreezedUser.fromJson(Map<String, dynamic> json) =>
+      _$FreezedUserFromJson(json);
 
   /// Factory pour créer depuis un Map (compatibilité avec l'ancien code)
   factory FreezedUser.fromMap(Map<String, dynamic> map) {
     // Parser le rôle
-    user_models.UserRole role = user_models.UserRole.client;
+    UserRole role = UserRole.client;
     if (map['role'] != null) {
       final roleString = map['role'].toString().toLowerCase();
       switch (roleString) {
         case 'delivery':
         case 'delivery_staff':
-          role = user_models.UserRole.delivery;
+          role = UserRole.delivery;
           break;
         case 'client':
         default:
-          role = user_models.UserRole.client;
+          role = UserRole.client;
           break;
       }
     }

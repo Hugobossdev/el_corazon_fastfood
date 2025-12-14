@@ -187,6 +187,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
@@ -197,7 +198,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _makeCall({bool isVideo = false}) async {
+  Future<void> _makeCall() async {
     try {
       // Initialiser Agora si nécessaire
       final agoraService = AgoraCallService();
@@ -226,9 +227,7 @@ class _ChatScreenState extends State<ChatScreen> {
           orderId: widget.order.id,
           senderId: currentUser.id,
           senderName: currentUser.name,
-          content: isVideo
-              ? '📹 Appel vidéo en cours...'
-              : '📞 Appel vocal en cours...',
+          content: '📞 Appel vocal en cours...',
           isFromDriver: true,
           type: MessageType.system,
         );
@@ -240,7 +239,7 @@ class _ChatScreenState extends State<ChatScreen> {
           MaterialPageRoute(
             builder: (context) => CallScreen(
               order: widget.order,
-              callType: isVideo ? CallType.video : CallType.voice,
+              callType: CallType.voice,
               isIncoming: false,
               callerName: widget.chatType == 'customer' ? 'Client' : 'Support',
             ),

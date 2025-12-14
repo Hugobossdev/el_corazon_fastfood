@@ -235,7 +235,7 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
                                     controller: _priceController,
                                     decoration: const InputDecoration(
                                       labelText: 'Prix de base',
-                                      suffixText: 'FCFA',
+                                      suffixText: 'CFA',
                                       border: OutlineInputBorder(),
                                     ),
                                     keyboardType: TextInputType.number,

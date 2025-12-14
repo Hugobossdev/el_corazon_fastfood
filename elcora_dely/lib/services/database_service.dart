@@ -12,7 +12,8 @@ class DatabaseService {
   SupabaseClient get _supabase {
     if (!SupabaseConfig.isInitialized) {
       throw Exception(
-          'Supabase not initialized. Please call SupabaseConfig.initialize() first.');
+        'Supabase not initialized. Please call SupabaseConfig.initialize() first.',
+      );
     }
     return SupabaseConfig.client;
   }
@@ -32,49 +33,16 @@ class DatabaseService {
       // Check if Supabase is initialized
       if (!SupabaseConfig.isInitialized) {
         throw Exception(
-            'Supabase n\'est pas initialisé. Veuillez vérifier votre connexion internet et réessayer.');
+          'Supabase n\'est pas initialisé. Veuillez vérifier votre connexion internet et réessayer.',
+        );
       }
 
       final supabaseClient = _supabase;
 
-      // 1. VÉRIFICATIONS PRÉALABLES - Vérifier email et téléphone AVANT de créer le compte auth
-      try {
-        // Vérifier si l'email existe déjà dans users
-        final existingEmail = await supabaseClient
-            .from('users')
-            .select('id, auth_user_id')
-            .eq('email', email)
-            .maybeSingle();
-
-        if (existingEmail != null && existingEmail['auth_user_id'] != null) {
-          throw Exception('Cet email est déjà utilisé par un autre compte');
-        }
-
-        // Vérifier si le téléphone existe déjà
-        final existingPhone = await supabaseClient
-            .from('users')
-            .select('id, auth_user_id')
-            .eq('phone', phone)
-            .maybeSingle();
-
-        if (existingPhone != null && existingPhone['auth_user_id'] != null) {
-          throw Exception(
-              'Ce numéro de téléphone est déjà utilisé par un autre compte');
-        }
-      } catch (e) {
-        // Si c'est déjà une Exception avec un message clair, la relancer
-        if (e is Exception &&
-            (e.toString().contains('déjà utilisé') ||
-                e.toString().contains('email') ||
-                e.toString().contains('téléphone'))) {
-          rethrow;
-        }
-        // Autres erreurs de vérification
-        debugPrint('⚠️ Erreur lors de la vérification préalable: $e');
-        throw Exception('Erreur lors de la vérification des informations: $e');
-      }
-
-      // 2. CRÉER LE COMPTE AUTH
+      // 1. CRÉER LE COMPTE AUTH
+      // Note: On ne fait pas de vérification préalable manuelle car RLS empêche
+      // les utilisateurs non authentifiés de lire la table users.
+      // On se fie aux contraintes d'unicité de la base de données et de Supabase Auth.
       final response = await supabaseClient.auth.signUp(
         email: email,
         password: password,
@@ -88,7 +56,8 @@ class DatabaseService {
       final user = response.user;
       if (user == null) {
         throw Exception(
-            'Échec de la création du compte. Aucun utilisateur retourné.');
+          'Échec de la création du compte. Aucun utilisateur retourné.',
+        );
       }
 
       // 3. CRÉER LE PROFIL UTILISATEUR
@@ -103,14 +72,17 @@ class DatabaseService {
         if (existingProfile != null) {
           // Le profil existe déjà, mettre à jour
           debugPrint('ℹ️ Profil utilisateur déjà existant, mise à jour...');
-          await supabaseClient.from('users').update({
-            'name': name,
-            'email': email,
-            'phone': phone,
-            'role': role.toString().split('.').last,
-            'is_active': true,
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('auth_user_id', user.id);
+          await supabaseClient
+              .from('users')
+              .update({
+                'name': name,
+                'email': email,
+                'phone': phone,
+                'role': role.toString().split('.').last,
+                'is_active': true,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('auth_user_id', user.id);
         } else {
           // Créer le nouveau profil
           await supabaseClient.from('users').insert({
@@ -147,7 +119,8 @@ class DatabaseService {
         } else {
           // Autre erreur Postgres - CRITIQUE : relancer l'erreur
           debugPrint(
-              '❌ Erreur Postgres lors de la création du profil: ${e.code} - ${e.message}');
+            '❌ Erreur Postgres lors de la création du profil: ${e.code} - ${e.message}',
+          );
           throw Exception('Erreur lors de la création du profil: ${e.message}');
         }
       } catch (e) {
@@ -161,7 +134,8 @@ class DatabaseService {
         // Autres erreurs - CRITIQUE : relancer pour ne pas laisser un compte auth orphelin
         debugPrint('❌ Erreur lors de la création du profil utilisateur: $e');
         throw Exception(
-            'Erreur lors de la création du profil utilisateur. Veuillez réessayer.');
+          'Erreur lors de la création du profil utilisateur. Veuillez réessayer.',
+        );
       }
 
       return response;
@@ -181,8 +155,9 @@ class DatabaseService {
           e.message.contains('rate limit')) {
         message = 'Trop de tentatives. Veuillez patienter quelques minutes.';
       } else {
-        message =
-            e.message.isNotEmpty ? e.message : 'Erreur d\'authentification';
+        message = e.message.isNotEmpty
+            ? e.message
+            : 'Erreur d\'authentification';
       }
       throw Exception(message);
     } catch (e) {
@@ -192,18 +167,22 @@ class DatabaseService {
           errorString.contains('name not resolved') ||
           errorString.contains('failed to resolve')) {
         throw Exception(
-            'Impossible de se connecter au serveur. Vérifiez que l\'URL Supabase est correcte dans la configuration et que votre connexion internet fonctionne.');
+          'Impossible de se connecter au serveur. Vérifiez que l\'URL Supabase est correcte dans la configuration et que votre connexion internet fonctionne.',
+        );
       } else if (errorString.contains('failed to fetch') ||
           errorString.contains('network') ||
           errorString.contains('connection')) {
         throw Exception(
-            'Erreur de connexion. Vérifiez votre connexion internet et réessayez. Si le problème persiste, cela peut être un problème de configuration CORS sur le serveur.');
+          'Erreur de connexion. Vérifiez votre connexion internet et réessayez. Si le problème persiste, cela peut être un problème de configuration CORS sur le serveur.',
+        );
       } else if (errorString.contains('timeout')) {
         throw Exception(
-            'La requête a expiré. Vérifiez votre connexion internet et réessayez.');
+          'La requête a expiré. Vérifiez votre connexion internet et réessayez.',
+        );
       } else if (errorString.contains('cors')) {
         throw Exception(
-            'Erreur de configuration serveur (CORS). Contactez le support technique.');
+          'Erreur de configuration serveur (CORS). Contactez le support technique.',
+        );
       }
 
       // Si c'est déjà une Exception avec un message, la relancer
@@ -256,14 +235,17 @@ class DatabaseService {
       // This is a normal case, not an error
       if (e.code == 'PGRST116' ||
           e.message.contains('0 rows') ||
-          e.message
-              .contains('Cannot coerce the result to a single JSON object')) {
+          e.message.contains(
+            'Cannot coerce the result to a single JSON object',
+          )) {
         debugPrint(
-            'ℹ️ User profile not found for userId: $userId (this is normal for new users)');
+          'ℹ️ User profile not found for userId: $userId (this is normal for new users)',
+        );
         return null;
       }
       debugPrint(
-          '❌ PostgrestException in getUserProfile: ${e.code} - ${e.message}');
+        '❌ PostgrestException in getUserProfile: ${e.code} - ${e.message}',
+      );
       throw Exception('Erreur lors de la récupération du profil: ${e.message}');
     } catch (e) {
       // Catch any other exceptions, including if maybeSingle() still throws
@@ -272,7 +254,8 @@ class DatabaseService {
           errorString.contains('0 rows') ||
           errorString.contains('cannot coerce')) {
         debugPrint(
-            'ℹ️ User profile not found for userId: $userId (handled in catch)');
+          'ℹ️ User profile not found for userId: $userId (handled in catch)',
+        );
         return null;
       }
       debugPrint('❌ Error in getUserProfile: $e');
@@ -281,7 +264,9 @@ class DatabaseService {
   }
 
   Future<void> updateUserProfile(
-      String userId, Map<String, dynamic> updates) async {
+    String userId,
+    Map<String, dynamic> updates,
+  ) async {
     try {
       await _supabase.from('users').update(updates).eq('auth_user_id', userId);
     } catch (e) {
@@ -291,10 +276,13 @@ class DatabaseService {
 
   Future<void> updateUserOnlineStatus(String userId, bool isOnline) async {
     try {
-      await _supabase.from('users').update({
-        'is_online': isOnline,
-        'last_seen': DateTime.now().toIso8601String(),
-      }).eq('auth_user_id', userId);
+      await _supabase
+          .from('users')
+          .update({
+            'is_online': isOnline,
+            'last_seen': DateTime.now().toIso8601String(),
+          })
+          .eq('auth_user_id', userId);
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour du statut: $e');
     }
@@ -319,10 +307,13 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getMenuItems({String? categoryId}) async {
     try {
-      var query = _supabase.from('menu_items').select('''
+      var query = _supabase
+          .from('menu_items')
+          .select('''
             *,
             menu_categories!inner(name, display_name, emoji)
-          ''').eq('is_available', true);
+          ''')
+          .eq('is_available', true);
 
       if (categoryId != null) {
         query = query.eq('category_id', categoryId);
@@ -336,7 +327,8 @@ class DatabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getCustomizationOptions(
-      String menuItemId) async {
+    String menuItemId,
+  ) async {
     try {
       final response = await _supabase
           .from('menu_item_customizations')
@@ -355,11 +347,14 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAllCustomizationOptions() async {
     try {
-      final response =
-          await _supabase.from('menu_item_customizations').select('''
+      final response = await _supabase
+          .from('menu_item_customizations')
+          .select('''
             *,
             customization_options!inner(*)
-          ''').order('menu_item_id').order('sort_order');
+          ''')
+          .order('menu_item_id')
+          .order('sort_order');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception('Erreur lors du chargement global des options: $e');
@@ -384,13 +379,12 @@ class DatabaseService {
   }
 
   Future<void> addOrderItems(
-      String orderId, List<Map<String, dynamic>> items) async {
+    String orderId,
+    List<Map<String, dynamic>> items,
+  ) async {
     try {
       final itemsWithOrderId = items
-          .map((item) => {
-                ...item,
-                'order_id': orderId,
-              })
+          .map((item) => {...item, 'order_id': orderId})
           .toList();
 
       await _supabase.from('order_items').insert(itemsWithOrderId);
@@ -401,10 +395,14 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getUserOrders(String userId) async {
     try {
-      final response = await _supabase.from('orders').select('''
+      final response = await _supabase
+          .from('orders')
+          .select('''
             *,
             order_items(*)
-          ''').eq('user_id', userId).order('created_at', ascending: false);
+          ''')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération des commandes: $e');
@@ -428,10 +426,12 @@ class DatabaseService {
 
         if (allOrders.isNotEmpty) {
           final statusCounts = <String, int>{};
-          final withDelivery =
-              allOrders.where((o) => o['delivery_person_id'] != null).length;
-          final withoutDelivery =
-              allOrders.where((o) => o['delivery_person_id'] == null).length;
+          final withDelivery = allOrders
+              .where((o) => o['delivery_person_id'] != null)
+              .length;
+          final withoutDelivery = allOrders
+              .where((o) => o['delivery_person_id'] == null)
+              .length;
 
           for (var order in allOrders) {
             final status = order['status'] as String? ?? 'unknown';
@@ -452,15 +452,14 @@ class DatabaseService {
       // - Orders must have status: pending, confirmed, preparing, or ready
       // - Orders must NOT have a delivery_person_id assigned (NULL)
       // - Orders must NOT have an active delivery in active_deliveries table
-      final response = await _supabase.from('orders').select('''
+      final response = await _supabase
+          .from('orders')
+          .select('''
             *,
             order_items(*)
-          ''').inFilter('status', [
-        'pending',
-        'ready',
-        'confirmed',
-        'preparing'
-      ]).order('created_at', ascending: false);
+          ''')
+          .inFilter('status', ['pending', 'ready', 'confirmed', 'preparing'])
+          .order('created_at', ascending: false);
 
       // Filter orders with null delivery_person_id in code
       final ordersWithStatus = List<Map<String, dynamic>>.from(response);
@@ -476,11 +475,12 @@ class DatabaseService {
             .from('active_deliveries')
             .select('order_id')
             .inFilter('status', [
-          'assigned',
-          'accepted',
-          'picked_up',
-          'on_the_way'
-        ]).timeout(const Duration(seconds: 5));
+              'assigned',
+              'accepted',
+              'picked_up',
+              'on_the_way',
+            ])
+            .timeout(const Duration(seconds: 5));
 
         activeOrderIds = (activeDeliveriesResponse as List)
             .map((ad) => ad['order_id'] as String)
@@ -498,22 +498,28 @@ class DatabaseService {
           .toList();
 
       debugPrint(
-          '✅ Found ${orders.length} available orders (pending/confirmed/preparing/ready without delivery person and not in active_deliveries)');
+        '✅ Found ${orders.length} available orders (pending/confirmed/preparing/ready without delivery person and not in active_deliveries)',
+      );
       if (orders.isNotEmpty) {
         debugPrint(
-            '📦 Available order IDs: ${orders.map((o) => o['id'].toString().substring(0, 8)).toList()}');
+          '📦 Available order IDs: ${orders.map((o) => o['id'].toString().substring(0, 8)).toList()}',
+        );
         debugPrint(
-            '📦 Available order statuses: ${orders.map((o) => o['status']).toList()}');
+          '📦 Available order statuses: ${orders.map((o) => o['status']).toList()}',
+        );
       } else {
         debugPrint('⚠️ No available orders found.');
         if (ordersWithoutDelivery.isNotEmpty) {
           debugPrint(
-              'ℹ️ ${ordersWithoutDelivery.length} orders found without delivery person, but they are in active_deliveries');
+            'ℹ️ ${ordersWithoutDelivery.length} orders found without delivery person, but they are in active_deliveries',
+          );
         } else {
           debugPrint(
-              'ℹ️ All orders have a delivery person assigned or are in a non-available status');
+            'ℹ️ All orders have a delivery person assigned or are in a non-available status',
+          );
           debugPrint(
-              '💡 Tip: Create new orders or reset delivery_person_id to make orders available');
+            '💡 Tip: Create new orders or reset delivery_person_id to make orders available',
+          );
         }
       }
 
@@ -521,25 +527,65 @@ class DatabaseService {
     } catch (e) {
       debugPrint('❌ Error in getAvailableOrders: $e');
       throw Exception(
-          'Erreur lors de la récupération des commandes disponibles: $e');
+        'Erreur lors de la récupération des commandes disponibles: $e',
+      );
     }
   }
 
   Future<List<Map<String, dynamic>>> getAllOrders() async {
     try {
-      final response = await _supabase.from('orders').select('''
+      final response = await _supabase
+          .from('orders')
+          .select('''
             *,
             order_items(*)
-          ''').order('created_at', ascending: false);
+          ''')
+          .order('created_at', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception(
-          'Erreur lors de la récupération de toutes les commandes: $e');
+        'Erreur lors de la récupération de toutes les commandes: $e',
+      );
     }
   }
 
-  Future<void> updateOrderStatus(String orderId, String status,
-      {String? deliveryPersonId}) async {
+  /// Assigne une commande à un livreur de manière sécurisée (vérifie qu'elle n'est pas déjà prise)
+  Future<void> assignOrderToDriver(String orderId, String driverId) async {
+    try {
+      // 1. Tenter de mettre à jour la commande UNIQUEMENT si delivery_person_id est NULL
+      final response = await _supabase
+          .from('orders')
+          .update({
+            'delivery_person_id': driverId,
+            'status': 'confirmed', // accepted
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', orderId)
+          .filter('delivery_person_id', 'is', null)
+          .select()
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception(
+          'Cette commande a déjà été acceptée par un autre livreur.',
+        );
+      }
+
+      // 2. Si succès, créer l'entrée dans active_deliveries
+      await updateActiveDeliveryStatus(orderId: orderId, status: 'accepted');
+
+      debugPrint('✅ Commande $orderId assignée au livreur $driverId');
+    } catch (e) {
+      debugPrint('❌ Erreur lors de l\'assignation de la commande: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateOrderStatus(
+    String orderId,
+    String status, {
+    String? deliveryPersonId,
+  }) async {
     try {
       final updates = {
         'status': status,
@@ -595,15 +641,16 @@ class DatabaseService {
             } else if (activeDeliveryStatus == 'picked_up') {
               insertData['picked_up_at'] = DateTime.now().toIso8601String();
             } else if (activeDeliveryStatus == 'on_the_way') {
-              insertData['started_delivery_at'] =
-                  DateTime.now().toIso8601String();
+              insertData['started_delivery_at'] = DateTime.now()
+                  .toIso8601String();
             } else if (activeDeliveryStatus == 'delivered') {
               insertData['delivered_at'] = DateTime.now().toIso8601String();
             }
 
             await _supabase.from('active_deliveries').insert(insertData);
             debugPrint(
-                '✅ Created active_delivery entry for order $orderId with status $activeDeliveryStatus');
+              '✅ Created active_delivery entry for order $orderId with status $activeDeliveryStatus',
+            );
           } else {
             // Update existing entry
             final updateData = {
@@ -617,8 +664,8 @@ class DatabaseService {
             } else if (activeDeliveryStatus == 'picked_up') {
               updateData['picked_up_at'] = DateTime.now().toIso8601String();
             } else if (activeDeliveryStatus == 'on_the_way') {
-              updateData['started_delivery_at'] =
-                  DateTime.now().toIso8601String();
+              updateData['started_delivery_at'] = DateTime.now()
+                  .toIso8601String();
             } else if (activeDeliveryStatus == 'delivered') {
               updateData['delivered_at'] = DateTime.now().toIso8601String();
             }
@@ -628,11 +675,13 @@ class DatabaseService {
                 .update(updateData)
                 .eq('order_id', orderId);
             debugPrint(
-                '✅ Updated active_delivery entry for order $orderId to status $activeDeliveryStatus');
+              '✅ Updated active_delivery entry for order $orderId to status $activeDeliveryStatus',
+            );
           }
         } catch (e) {
           debugPrint(
-              '⚠️ Could not create/update active_delivery (non-critical): $e');
+            '⚠️ Could not create/update active_delivery (non-critical): $e',
+          );
           // Don't fail the whole operation if active_deliveries update fails
         }
       }
@@ -692,7 +741,8 @@ class DatabaseService {
   // =====================================================
 
   Future<List<Map<String, dynamic>>> getActiveDeliveries(
-      String deliveryId) async {
+    String deliveryId,
+  ) async {
     try {
       final response = await _supabase
           .from('active_deliveries')
@@ -701,8 +751,12 @@ class DatabaseService {
             orders!inner(*, order_items(*))
           ''')
           .eq('delivery_id', deliveryId)
-          .inFilter(
-              'status', ['assigned', 'accepted', 'picked_up', 'on_the_way'])
+          .inFilter('status', [
+            'assigned',
+            'accepted',
+            'picked_up',
+            'on_the_way',
+          ])
           .order('assigned_at', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -712,7 +766,8 @@ class DatabaseService {
 
   /// Récupère les commandes assignées à un livreur
   Future<List<Map<String, dynamic>>> getAssignedOrders(
-      String deliveryId) async {
+    String deliveryId,
+  ) async {
     try {
       final response = await _supabase
           .from('orders')
@@ -726,7 +781,7 @@ class DatabaseService {
             'preparing',
             'ready',
             'picked_up',
-            'on_the_way'
+            'on_the_way',
           ])
           .order('created_at', ascending: false);
 
@@ -734,7 +789,8 @@ class DatabaseService {
     } catch (e) {
       debugPrint('❌ Error in getAssignedOrders: $e');
       throw Exception(
-          'Erreur lors de la récupération des commandes assignées: $e');
+        'Erreur lors de la récupération des commandes assignées: $e',
+      );
     }
   }
 
@@ -773,11 +829,13 @@ class DatabaseService {
           .timeout(const Duration(seconds: 10));
 
       debugPrint(
-          '✅ Updated active_delivery status to $status for order $orderId');
+        '✅ Updated active_delivery status to $status for order $orderId',
+      );
     } catch (e) {
       debugPrint('❌ Error updating active_delivery status: $e');
       throw Exception(
-          'Erreur lors de la mise à jour du statut de livraison: $e');
+        'Erreur lors de la mise à jour du statut de livraison: $e',
+      );
     }
   }
 
@@ -807,7 +865,8 @@ class DatabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getDeliveryLocations(
-      String orderId) async {
+    String orderId,
+  ) async {
     try {
       final response = await _supabase
           .from('delivery_locations')
@@ -839,10 +898,13 @@ class DatabaseService {
 
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
-      await _supabase.from('notifications').update({
-        'is_read': true,
-        'read_at': DateTime.now().toIso8601String(),
-      }).eq('id', notificationId);
+      await _supabase
+          .from('notifications')
+          .update({
+            'is_read': true,
+            'read_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', notificationId);
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour de la notification: $e');
     }
@@ -854,10 +916,14 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getSocialGroups(String userId) async {
     try {
-      final response = await _supabase.from('group_members').select('''
+      final response = await _supabase
+          .from('group_members')
+          .select('''
             *,
             social_groups!inner(*)
-          ''').eq('user_id', userId).eq('is_active', true);
+          ''')
+          .eq('user_id', userId)
+          .eq('is_active', true);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération des groupes: $e');
@@ -871,8 +937,9 @@ class DatabaseService {
     required String creatorId,
   }) async {
     try {
-      final inviteCode =
-          DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+      final inviteCode = DateTime.now().millisecondsSinceEpoch
+          .toString()
+          .substring(8);
 
       final response = await _supabase
           .from('social_groups')
@@ -918,13 +985,18 @@ class DatabaseService {
   }
 
   // Social Posts
-  Future<List<Map<String, dynamic>>> getSocialPosts(
-      {String? userId, String? groupId}) async {
+  Future<List<Map<String, dynamic>>> getSocialPosts({
+    String? userId,
+    String? groupId,
+  }) async {
     try {
-      var query = _supabase.from('social_posts').select('''
+      var query = _supabase
+          .from('social_posts')
+          .select('''
             *,
             users!inner(name, email)
-          ''').eq('is_public', true);
+          ''')
+          .eq('is_public', true);
 
       if (userId != null) {
         query = query.eq('user_id', userId);
@@ -933,8 +1005,9 @@ class DatabaseService {
         query = query.eq('group_id', groupId);
       }
 
-      final response =
-          await query.order('created_at', ascending: false).limit(50);
+      final response = await query
+          .order('created_at', ascending: false)
+          .limit(50);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération des posts: $e');
@@ -994,8 +1067,8 @@ class DatabaseService {
             .single();
         await _supabase
             .from('social_posts')
-            .update({'likes_count': (current['likes_count'] ?? 0) + 1}).eq(
-                'id', postId);
+            .update({'likes_count': (current['likes_count'] ?? 0) + 1})
+            .eq('id', postId);
       }
     } catch (e) {
       // Try manual update if RPC fails
@@ -1007,8 +1080,8 @@ class DatabaseService {
             .single();
         await _supabase
             .from('social_posts')
-            .update({'likes_count': (current['likes_count'] ?? 0) + 1}).eq(
-                'id', postId);
+            .update({'likes_count': (current['likes_count'] ?? 0) + 1})
+            .eq('id', postId);
       } catch (e2) {
         throw Exception('Erreur lors du like: $e');
       }
@@ -1016,15 +1089,14 @@ class DatabaseService {
   }
 
   Future<String> addPostComment(
-      String postId, String userId, String content) async {
+    String postId,
+    String userId,
+    String content,
+  ) async {
     try {
       final response = await _supabase
           .from('post_comments')
-          .insert({
-            'post_id': postId,
-            'user_id': userId,
-            'content': content,
-          })
+          .insert({'post_id': postId, 'user_id': userId, 'content': content})
           .select('id')
           .single();
 
@@ -1035,9 +1107,10 @@ class DatabaseService {
             .select('comments_count')
             .eq('id', postId)
             .single();
-        await _supabase.from('social_posts').update({
-          'comments_count': (current['comments_count'] ?? 0) + 1
-        }).eq('id', postId);
+        await _supabase
+            .from('social_posts')
+            .update({'comments_count': (current['comments_count'] ?? 0) + 1})
+            .eq('id', postId);
       } catch (e) {
         debugPrint('Error updating comments count: $e');
       }
@@ -1050,10 +1123,14 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getPostComments(String postId) async {
     try {
-      final response = await _supabase.from('post_comments').select('''
+      final response = await _supabase
+          .from('post_comments')
+          .select('''
             *,
             users!inner(name, email)
-          ''').eq('post_id', postId).order('created_at', ascending: true);
+          ''')
+          .eq('post_id', postId)
+          .order('created_at', ascending: true);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération des commentaires: $e');
@@ -1150,7 +1227,9 @@ class DatabaseService {
   // =====================================================
 
   RealtimeChannel subscribeToOrderUpdates(
-      String orderId, Function(Map<String, dynamic>) onUpdate) {
+    String orderId,
+    Function(Map<String, dynamic>) onUpdate,
+  ) {
     return _supabase
         .channel('order_updates_$orderId')
         .onPostgresChanges(
@@ -1168,7 +1247,9 @@ class DatabaseService {
   }
 
   RealtimeChannel subscribeToDeliveryLocations(
-      String orderId, Function(Map<String, dynamic>) onLocationUpdate) {
+    String orderId,
+    Function(Map<String, dynamic>) onLocationUpdate,
+  ) {
     return _supabase
         .channel('delivery_locations_$orderId')
         .onPostgresChanges(
@@ -1186,7 +1267,9 @@ class DatabaseService {
   }
 
   RealtimeChannel subscribeToNotifications(
-      String userId, Function(Map<String, dynamic>) onNotification) {
+    String userId,
+    Function(Map<String, dynamic>) onNotification,
+  ) {
     return _supabase
         .channel('notifications_$userId')
         .onPostgresChanges(
@@ -1251,7 +1334,9 @@ class DatabaseService {
   }
 
   RealtimeChannel subscribeToMessages(
-      String orderId, Function(Map<String, dynamic>) onMessage) {
+    String orderId,
+    Function(Map<String, dynamic>) onMessage,
+  ) {
     return _supabase
         .channel('messages_$orderId')
         .onPostgresChanges(
@@ -1282,7 +1367,9 @@ class DatabaseService {
       final fileBytes = await file.readAsBytes();
       final path = folder != null ? '$folder/$fileName' : fileName;
 
-      await _supabase.storage.from(bucketName).uploadBinary(
+      await _supabase.storage
+          .from(bucketName)
+          .uploadBinary(
             path,
             fileBytes,
             fileOptions: const FileOptions(
@@ -1308,13 +1395,12 @@ class DatabaseService {
     try {
       final path = folder != null ? '$folder/$fileName' : fileName;
 
-      await _supabase.storage.from(bucketName).uploadBinary(
+      await _supabase.storage
+          .from(bucketName)
+          .uploadBinary(
             path,
             fileBytes,
-            fileOptions: FileOptions(
-              upsert: true,
-              contentType: contentType,
-            ),
+            fileOptions: FileOptions(upsert: true, contentType: contentType),
           );
 
       final publicUrl = _supabase.storage.from(bucketName).getPublicUrl(path);
@@ -1359,12 +1445,15 @@ class DatabaseService {
       final userId = userResponse['id'] as String;
 
       // 2. Mettre à jour les informations de base dans users
-      await _supabase.from('users').update({
-        'name': name,
-        'phone': phone,
-        'profile_image': profilePhotoUrl,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('auth_user_id', authUserId);
+      await _supabase
+          .from('users')
+          .update({
+            'name': name,
+            'phone': phone,
+            'profile_image': profilePhotoUrl,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('auth_user_id', authUserId);
 
       // 3. Créer ou mettre à jour le profil dans la table drivers
       final existingDriver = await _supabase
@@ -1375,19 +1464,22 @@ class DatabaseService {
 
       if (existingDriver != null) {
         // Mettre à jour le profil livreur existant
-        await _supabase.from('drivers').update({
-          'profile_photo_url': profilePhotoUrl,
-          'license_number': licenseNumber,
-          'id_number': idNumber,
-          'vehicle_type': vehicleType,
-          'vehicle_number': vehicleNumber,
-          'license_photo_url': licensePhotoUrl,
-          'id_card_photo_url': idCardPhotoUrl,
-          'vehicle_photo_url': vehiclePhotoUrl,
-          'verification_status':
-              'pending', // Remettre en attente si nouveau fichier
-          'updated_at': DateTime.now().toIso8601String(),
-        }).eq('user_id', userId);
+        await _supabase
+            .from('drivers')
+            .update({
+              'profile_photo_url': profilePhotoUrl,
+              'license_number': licenseNumber,
+              'id_number': idNumber,
+              'vehicle_type': vehicleType,
+              'vehicle_number': vehicleNumber,
+              'license_photo_url': licensePhotoUrl,
+              'id_card_photo_url': idCardPhotoUrl,
+              'vehicle_photo_url': vehiclePhotoUrl,
+              'verification_status':
+                  'pending', // Remettre en attente si nouveau fichier
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('user_id', userId);
         debugPrint('✅ Profil livreur mis à jour dans la table drivers');
       } else {
         // Créer un nouveau profil livreur
@@ -1416,7 +1508,8 @@ class DatabaseService {
           'document_type': 'license',
           'status': 'pending',
           'file_url': licensePhotoUrl,
-          'file_name': licenseFileName ??
+          'file_name':
+              licenseFileName ??
               'license_${DateTime.now().millisecondsSinceEpoch}.jpg',
           'file_type': licenseFileType ?? 'image/jpeg',
           'file_size': licenseFileSize,
@@ -1431,7 +1524,8 @@ class DatabaseService {
           'document_type': 'identity',
           'status': 'pending',
           'file_url': idCardPhotoUrl,
-          'file_name': idCardFileName ??
+          'file_name':
+              idCardFileName ??
               'identity_${DateTime.now().millisecondsSinceEpoch}.jpg',
           'file_type': idCardFileType ?? 'image/jpeg',
           'file_size': idCardFileSize,
@@ -1446,7 +1540,8 @@ class DatabaseService {
           'document_type': 'vehicle',
           'status': 'pending',
           'file_url': vehiclePhotoUrl,
-          'file_name': vehicleFileName ??
+          'file_name':
+              vehicleFileName ??
               'vehicle_${DateTime.now().millisecondsSinceEpoch}.jpg',
           'file_type': vehicleFileType ?? 'image/jpeg',
           'file_size': vehicleFileSize,
@@ -1467,15 +1562,18 @@ class DatabaseService {
 
           if (existingDoc != null) {
             // Mettre à jour le document existant
-            await _supabase.from('driver_documents').update({
-              'file_url': doc['file_url'],
-              'file_name': doc['file_name'],
-              'file_type': doc['file_type'],
-              'file_size': doc['file_size'],
-              'status': 'pending', // Remettre en attente si nouveau fichier
-              'uploaded_at': doc['uploaded_at'],
-              'updated_at': DateTime.now().toIso8601String(),
-            }).eq('id', existingDoc['id']);
+            await _supabase
+                .from('driver_documents')
+                .update({
+                  'file_url': doc['file_url'],
+                  'file_name': doc['file_name'],
+                  'file_type': doc['file_type'],
+                  'file_size': doc['file_size'],
+                  'status': 'pending', // Remettre en attente si nouveau fichier
+                  'uploaded_at': doc['uploaded_at'],
+                  'updated_at': DateTime.now().toIso8601String(),
+                })
+                .eq('id', existingDoc['id']);
             debugPrint('✅ Document ${doc['document_type']} mis à jour');
           } else {
             // Créer un nouveau document
@@ -1484,13 +1582,15 @@ class DatabaseService {
           }
         } catch (e) {
           debugPrint(
-              '⚠️ Erreur lors de l\'enregistrement du document ${doc['document_type']}: $e');
+            '⚠️ Erreur lors de l\'enregistrement du document ${doc['document_type']}: $e',
+          );
           // Continuer avec les autres documents même si un échoue
         }
       }
 
       debugPrint(
-          '✅ Profil livreur créé/mis à jour avec ${documents.length} documents');
+        '✅ Profil livreur créé/mis à jour avec ${documents.length} documents',
+      );
     } catch (e) {
       debugPrint('❌ Erreur lors de la création du profil livreur: $e');
       throw Exception('Erreur lors de la création du profil livreur: $e');
@@ -1515,7 +1615,8 @@ class DatabaseService {
 
   /// Récupère le profil livreur par auth_user_id
   Future<Map<String, dynamic>?> getDriverProfileByAuthId(
-      String authUserId) async {
+    String authUserId,
+  ) async {
     try {
       // D'abord récupérer l'ID utilisateur
       final userResponse = await _supabase
@@ -1602,9 +1703,11 @@ class DatabaseService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint(
-          '❌ Erreur lors de la récupération des documents en attente: $e');
+        '❌ Erreur lors de la récupération des documents en attente: $e',
+      );
       throw Exception(
-          'Erreur lors de la récupération des documents en attente: $e');
+        'Erreur lors de la récupération des documents en attente: $e',
+      );
     }
   }
 
@@ -1619,9 +1722,11 @@ class DatabaseService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint(
-          '❌ Erreur lors de la récupération des livreurs en attente: $e');
+        '❌ Erreur lors de la récupération des livreurs en attente: $e',
+      );
       throw Exception(
-          'Erreur lors de la récupération des livreurs en attente: $e');
+        'Erreur lors de la récupération des livreurs en attente: $e',
+      );
     }
   }
 
@@ -1663,20 +1768,24 @@ class DatabaseService {
     try {
       // Si la table withdrawals n'existe pas, on peut utiliser une table générique
       // ou créer une entrée dans une table de transactions
-      await _supabase.from('withdrawals').insert({
-        'user_id': userId,
-        'amount': amount,
-        'transaction_id': transactionId,
-        'status': status,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).timeout(const Duration(seconds: 10));
+      await _supabase
+          .from('withdrawals')
+          .insert({
+            'user_id': userId,
+            'amount': amount,
+            'transaction_id': transactionId,
+            'status': status,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .timeout(const Duration(seconds: 10));
 
       debugPrint('✅ Retrait enregistré: $transactionId pour $amount XOF');
     } catch (e) {
       // Si la table n'existe pas, on peut logger l'erreur mais ne pas bloquer
       debugPrint(
-          '⚠️ Impossible d\'enregistrer le retrait (table peut ne pas exister): $e');
+        '⚠️ Impossible d\'enregistrer le retrait (table peut ne pas exister): $e',
+      );
       // Ne pas throw pour éviter de bloquer le processus de retrait
     }
   }

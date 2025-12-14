@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/dialog_helper.dart';
-import '../../services/admin_auth_service.dart';
+import '../../services/role_management_service.dart';
 import '../../models/admin_role.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -27,7 +27,9 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AdminAuthService>().initialize();
+      if (mounted) {
+        context.read<RoleManagementService>().initialize();
+      }
     });
   }
 
@@ -54,13 +56,13 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
           ),
         ],
       ),
-      body: Consumer<AdminAuthService>(
-        builder: (context, adminAuthService, child) {
-          if (adminAuthService.isLoading) {
+      body: Consumer<RoleManagementService>(
+        builder: (context, roleService, child) {
+          if (roleService.isLoading) {
             return const LoadingWidget(message: 'Chargement des rôles...');
           }
 
-          final roles = adminAuthService.availableRoles;
+          final roles = roleService.roles;
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -490,7 +492,7 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
     setState(() => _isCreating = true);
 
     try {
-      final adminAuthService = context.read<AdminAuthService>();
+      final roleService = context.read<RoleManagementService>();
       bool success;
 
       if (_editingRole == null) {
@@ -502,7 +504,7 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        success = await adminAuthService.createAdminRole(newRole);
+        success = await roleService.createRole(newRole);
       } else {
         final updatedRole = _editingRole!.copyWith(
           name: _nameController.text,
@@ -510,7 +512,7 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
           permissions: _selectedPermissions,
           updatedAt: DateTime.now(),
         );
-        success = await adminAuthService.updateAdminRole(updatedRole);
+        success = await roleService.updateRole(updatedRole);
       }
 
       if (success && mounted) {
@@ -660,8 +662,8 @@ class _AdminRolesScreenState extends State<AdminRolesScreen> {
                 Navigator.of(dialogContext).pop();
 
                 try {
-                  final adminAuthService = context.read<AdminAuthService>();
-                  final success = await adminAuthService.deleteAdminRole(
+                  final roleService = context.read<RoleManagementService>();
+                  final success = await roleService.deleteRole(
                     role.id,
                   );
 

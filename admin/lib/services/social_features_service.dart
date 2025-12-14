@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/order.dart';
 import '../models/menu_models.dart';
+import '../utils/price_formatter.dart';
 
 class SocialFeaturesService extends ChangeNotifier {
   static final SocialFeaturesService _instance =
@@ -183,9 +184,8 @@ class SocialFeaturesService extends ChangeNotifier {
     String? groupId,
     String? customMessage,
   }) async {
-    final content =
-        customMessage ??
-        'J\'ai commandé chez El Corazón! 🍔\n\nCommande #${order.id.substring(0, 8)} pour ${order.total.toStringAsFixed(2)}€';
+    final content = customMessage ??
+        'J\'ai commandé chez El Corazón! 🍔\n\nCommande #${order.id.substring(0, 8)} pour ${PriceFormatter.format(order.total)}';
 
     final metadata = {
       'orderId': order.id,
@@ -212,8 +212,7 @@ class SocialFeaturesService extends ChangeNotifier {
     String? review,
     String? groupId,
   }) async {
-    final content =
-        review ??
+    final content = review ??
         'Je recommande ${item.name} chez El Corazón! ⭐ ${rating.toStringAsFixed(1)}/5';
 
     final metadata = {
@@ -288,7 +287,8 @@ class SocialFeaturesService extends ChangeNotifier {
       return following.contains(post.userId) ||
           userGroups.contains(post.groupId) ||
           post.userId == userId;
-    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   /// Obtient les posts d'un groupe
@@ -424,8 +424,8 @@ class SocialPost {
     List<String>? likedBy,
     List<SocialComment>? comments,
     required this.createdAt,
-  }) : likedBy = likedBy ?? [],
-       comments = comments ?? [];
+  })  : likedBy = likedBy ?? [],
+        comments = comments ?? [];
 }
 
 class SocialComment {

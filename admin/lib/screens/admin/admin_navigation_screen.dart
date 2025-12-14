@@ -20,6 +20,7 @@ import 'settings_screen.dart';
 import 'driver_map_screen.dart';
 import 'global_search_screen.dart';
 import 'active_deliveries_screen.dart';
+import 'driver_documents_dashboard_screen.dart';
 
 // Modèle de données pour les groupes de navigation
 class NavigationGroup {
@@ -146,6 +147,12 @@ class _AdminNavigationScreenState extends State<AdminNavigationScreen> {
           index: 3,
           color: Color(0xFF3B82F6),
         ),
+        NavigationItem(
+          title: 'Validation Docs',
+          icon: Icons.verified_user_rounded,
+          index: 15,
+          color: Color(0xFF10B981),
+        ),
       ],
     ),
     NavigationGroup(
@@ -257,6 +264,9 @@ class _AdminNavigationScreenState extends State<AdminNavigationScreen> {
         break;
       case 14:
         screen = const ActiveDeliveriesScreen();
+        break;
+      case 15:
+        screen = const DriverDocumentsDashboardScreen();
         break;
       default:
         screen = const AdminDashboardScreen();

@@ -100,6 +100,10 @@ class DriverDocument {
   final DateTime uploadedAt; // Date de téléchargement
   final DateTime createdAt;
   final DateTime updatedAt;
+  // Infos du livreur (jointure)
+  final String? driverName;
+  final String? driverEmail;
+  final String? driverPhone;
 
   DriverDocument({
     required this.id,
@@ -118,6 +122,9 @@ class DriverDocument {
     required this.uploadedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.driverName,
+    this.driverEmail,
+    this.driverPhone,
   });
 
   /// Vérifie si le document est approuvé
@@ -134,44 +141,6 @@ class DriverDocument {
     return status == DocumentValidationStatus.rejected ||
         status == DocumentValidationStatus.expired ||
         (status == DocumentValidationStatus.approved && isExpired);
-  }
-
-  DriverDocument copyWith({
-    String? id,
-    String? userId,
-    DocumentType? type,
-    DocumentValidationStatus? status,
-    String? fileUrl,
-    String? fileName,
-    String? fileType,
-    int? fileSize,
-    DateTime? expiryDate,
-    String? validatedBy,
-    String? validationNotes,
-    DateTime? validatedAt,
-    String? rejectionReason,
-    DateTime? uploadedAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return DriverDocument(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      type: type ?? this.type,
-      status: status ?? this.status,
-      fileUrl: fileUrl ?? this.fileUrl,
-      fileName: fileName ?? this.fileName,
-      fileType: fileType ?? this.fileType,
-      fileSize: fileSize ?? this.fileSize,
-      expiryDate: expiryDate ?? this.expiryDate,
-      validatedBy: validatedBy ?? this.validatedBy,
-      validationNotes: validationNotes ?? this.validationNotes,
-      validatedAt: validatedAt ?? this.validatedAt,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
-      uploadedAt: uploadedAt ?? this.uploadedAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
   }
 
   factory DriverDocument.fromMap(Map<String, dynamic> map) {
@@ -233,6 +202,18 @@ class DriverDocument {
       return null;
     }
 
+    // Extraire les infos du livreur si présentes (jointure)
+    String? driverName;
+    String? driverEmail;
+    String? driverPhone;
+    
+    if (map['drivers'] != null && map['drivers'] is Map) {
+      final driverData = map['drivers'] as Map<String, dynamic>;
+      driverName = driverData['name']?.toString();
+      driverEmail = driverData['email']?.toString();
+      driverPhone = driverData['phone']?.toString();
+    }
+
     return DriverDocument(
       id: map['id']?.toString() ?? '',
       userId: map['user_id']?.toString() ?? map['userId']?.toString() ?? '',
@@ -257,6 +238,9 @@ class DriverDocument {
       uploadedAt: parseDate(map['uploaded_at'] ?? map['uploadedAt']),
       createdAt: parseDate(map['created_at'] ?? map['createdAt']),
       updatedAt: parseDate(map['updated_at'] ?? map['updatedAt']),
+      driverName: driverName,
+      driverEmail: driverEmail,
+      driverPhone: driverPhone,
     );
   }
 
@@ -278,10 +262,51 @@ class DriverDocument {
       'uploaded_at': uploadedAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      // Ne pas inclure driver infos dans toMap pour DB insert/update
     };
   }
+  
+  DriverDocument copyWith({
+    String? id,
+    String? userId,
+    DocumentType? type,
+    DocumentValidationStatus? status,
+    String? fileUrl,
+    String? fileName,
+    String? fileType,
+    int? fileSize,
+    DateTime? expiryDate,
+    String? validatedBy,
+    String? validationNotes,
+    DateTime? validatedAt,
+    String? rejectionReason,
+    DateTime? uploadedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? driverName,
+    String? driverEmail,
+    String? driverPhone,
+  }) {
+    return DriverDocument(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      fileUrl: fileUrl ?? this.fileUrl,
+      fileName: fileName ?? this.fileName,
+      fileType: fileType ?? this.fileType,
+      fileSize: fileSize ?? this.fileSize,
+      expiryDate: expiryDate ?? this.expiryDate,
+      validatedBy: validatedBy ?? this.validatedBy,
+      validationNotes: validationNotes ?? this.validationNotes,
+      validatedAt: validatedAt ?? this.validatedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      driverName: driverName ?? this.driverName,
+      driverEmail: driverEmail ?? this.driverEmail,
+      driverPhone: driverPhone ?? this.driverPhone,
+    );
+  }
 }
-
-
-
-

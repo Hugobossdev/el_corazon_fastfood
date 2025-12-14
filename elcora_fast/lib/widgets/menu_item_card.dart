@@ -8,6 +8,7 @@ class MenuItemCard extends StatelessWidget {
   final MenuItem item;
   final VoidCallback onTap;
   final VoidCallback? onAddToCart;
+  final VoidCallback? onDecrement;
   final bool showAddButton;
   final int quantity;
   final bool isGridView;
@@ -18,6 +19,7 @@ class MenuItemCard extends StatelessWidget {
   const MenuItemCard({
     required this.item, required this.onTap, super.key,
     this.onAddToCart,
+    this.onDecrement,
     this.showAddButton = true,
     this.quantity = 0,
     this.isGridView = false,
@@ -206,9 +208,7 @@ class MenuItemCard extends StatelessWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            onPressed: () {
-                                              // Decrement quantity
-                                            },
+                                            onPressed: onDecrement,
                                             icon: Icon(
                                               Icons.remove,
                                               color: Colors.white,
@@ -338,11 +338,13 @@ class MenuItemListCard extends StatelessWidget {
   final MenuItem item;
   final VoidCallback onTap;
   final VoidCallback? onAddToCart;
+  final VoidCallback? onDecrement;
   final int quantity;
 
   const MenuItemListCard({
     required this.item, required this.onTap, super.key,
     this.onAddToCart,
+    this.onDecrement,
     this.quantity = 0,
   });
 
@@ -442,9 +444,7 @@ class MenuItemListCard extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () {
-                          // Decrement quantity
-                        },
+                        onPressed: onDecrement,
                         icon: const Icon(
                           Icons.remove,
                           color: Colors.white,

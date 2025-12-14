@@ -30,6 +30,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
+  String _initialCountryCode = 'TG';
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -171,7 +173,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget _buildAuthCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: DesignConstants.shadowHigh,
       ),
@@ -234,7 +236,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                         vertical: 18,
                       ),
                     ),
-                    initialCountryCode: 'CI',
+                    initialCountryCode: _initialCountryCode,
                     languageCode: 'fr',
                     onChanged: (phone) {
                       // print(phone.completeNumber);
@@ -349,10 +351,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget _buildPhoneAuthButton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.textTertiary.withValues(alpha: 0.3),
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
           width: 1.5,
         ),
         boxShadow: DesignConstants.shadowSoft,
@@ -365,21 +367,21 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             alignment: Alignment.center,
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.phone,
-                  color: AppColors.primary,
+                  color: Theme.of(context).primaryColor,
                   size: 20,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Text(
                   'Continuer avec le téléphone',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -393,10 +395,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget _buildGoogleAuthButton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.textTertiary.withValues(alpha: 0.3),
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
           width: 1.5,
         ),
         boxShadow: DesignConstants.shadowSoft,
@@ -425,12 +427,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   },
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Continuer avec Google',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -603,13 +605,16 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTabSelector() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.textTertiary.withValues(alpha: 0.2),
+          color: theme.dividerColor.withOpacity(0.2),
         ),
       ),
       child: Row(
@@ -633,10 +638,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 ),
                 child: Text(
                   'Connexion',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                         color: _isLogin
                             ? AppColors.textLight
-                            : AppColors.textPrimary,
+                            : theme.colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                       ),
                   textAlign: TextAlign.center,
@@ -663,10 +668,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 ),
                 child: Text(
                   'Inscription',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                         color: !_isLogin
                             ? AppColors.textLight
-                            : AppColors.textPrimary,
+                            : theme.colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                       ),
                   textAlign: TextAlign.center,
@@ -697,14 +702,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         obscureText: obscureText,
         keyboardType: keyboardType,
         validator: validator,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 16,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(
-            color: AppColors.textSecondary,
+          labelStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 14,
           ),
           prefixIcon: Container(
@@ -731,33 +736,35 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: AppColors.textTertiary.withValues(alpha: 0.3),
+              color: Theme.of(context).dividerColor.withOpacity(0.3),
               width: 1.5,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: AppColors.primary,
+            borderSide: BorderSide(
+              color: Theme.of(context).primaryColor,
               width: 2,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: AppColors.error,
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.error,
               width: 1.5,
             ),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: AppColors.error,
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.error,
               width: 2,
             ),
           ),
           filled: true,
-          fillColor: AppColors.surfaceElevated,
+          fillColor: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.surfaceContainerHighest
+              : AppColors.surfaceElevated,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 18,

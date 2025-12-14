@@ -6,6 +6,7 @@ import '../models/order.dart';
 import 'admin/enhanced_admin_dashboard.dart';
 import 'admin/admin_orders_screen.dart';
 import 'auth_screen.dart';
+import '../utils/price_formatter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -251,12 +252,12 @@ class CartBottomSheet extends StatelessWidget {
                         item.name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text('Prix: ${item.basePrice.toStringAsFixed(2)}€'),
+                      subtitle: Text('Prix: ${PriceFormatter.format(item.basePrice)}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${item.basePrice.toStringAsFixed(2)}€',
+                            PriceFormatter.format(item.basePrice),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -300,7 +301,7 @@ class CartBottomSheet extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Text(
-                          '${cartTotal.toStringAsFixed(2)}€',
+                          PriceFormatter.format(cartTotal),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
@@ -384,7 +385,7 @@ class _CheckoutBottomSheetState extends State<CheckoutBottomSheet> {
     return Consumer<AppService>(
       builder: (context, appService, child) {
         final cartTotal = appService.cartTotal;
-        const deliveryFee = 5.0;
+        const deliveryFee = 1000.0;
         final total = cartTotal + deliveryFee;
 
         return Container(
@@ -474,7 +475,7 @@ class _CheckoutBottomSheetState extends State<CheckoutBottomSheet> {
                         ),
                       )
                     : Text(
-                        'Confirmer la commande - ${total.toStringAsFixed(2)}€',
+                        'Confirmer la commande - ${PriceFormatter.format(total)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -499,7 +500,7 @@ class _CheckoutBottomSheetState extends State<CheckoutBottomSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Sous-total:'),
-            Text('${cartTotal.toStringAsFixed(2)}€'),
+            Text(PriceFormatter.format(cartTotal)),
           ],
         ),
         const SizedBox(height: 4),
@@ -507,7 +508,7 @@ class _CheckoutBottomSheetState extends State<CheckoutBottomSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Livraison:'),
-            Text('${deliveryFee.toStringAsFixed(2)}€'),
+            Text(PriceFormatter.format(deliveryFee)),
           ],
         ),
         const Divider(),
@@ -521,7 +522,7 @@ class _CheckoutBottomSheetState extends State<CheckoutBottomSheet> {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              '${total.toStringAsFixed(2)}€',
+              PriceFormatter.format(total),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,

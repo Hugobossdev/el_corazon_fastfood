@@ -115,6 +115,7 @@ class DesignEnhancementService {
     bool isVegan = false,
     VoidCallback? onTap,
     VoidCallback? onAddToCart,
+    VoidCallback? onDecrement,
     VoidCallback? onFavoriteTap,
     bool isFavorite = false,
     Duration animationDelay = Duration.zero,
@@ -134,9 +135,11 @@ class DesignEnhancementService {
       ),
       onTap: onTap ?? () {},
       onAddToCart: onAddToCart ?? () {},
+      onDecrement: onDecrement,
       onFavoriteTap: onFavoriteTap,
       isFavorite: isFavorite,
       isGridView: true,
+      quantity: quantity,
     );
   }
 

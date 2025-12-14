@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/order.dart';
+import '../utils/price_formatter.dart';
 
 class OrderManagementService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -271,7 +272,7 @@ class OrderManagementService extends ChangeNotifier {
 
       // Dans une vraie application, cela impliquerait l'appel à une API de passerelle de paiement
       // Pour l'instant, on va juste logger et mettre à jour le statut dans la DB
-      debugPrint('Processing refund of $amount€ for order $orderId');
+      debugPrint('Processing refund of ${PriceFormatter.format(amount)} for order $orderId');
 
       await _supabase.from('orders').update({
         'is_refunded': true,
@@ -894,7 +895,7 @@ class OrderManagementService extends ChangeNotifier {
         anomalies.add({
           'order_id': order.id,
           'type': 'high_amount',
-          'message': 'Montant anormalement élevé: ${order.total}€',
+          'message': 'Montant anormalement élevé: ${PriceFormatter.format(order.total)}',
           'severity': 'medium',
         });
       }

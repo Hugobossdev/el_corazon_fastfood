@@ -10,6 +10,7 @@ import 'driver_assignment_dialog.dart';
 import '../../services/order_management_service.dart';
 import '../../services/paydunya_service.dart';
 import '../../widgets/order_timeline_widget.dart';
+import '../../utils/price_formatter.dart';
 
 class OrderManagementScreen extends StatefulWidget {
   const OrderManagementScreen({super.key});
@@ -648,13 +649,13 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
-                              Icons.euro_rounded,
+                              Icons.monetization_on_rounded,
                               size: 18,
                               color: Color(0xFFFF6A00),
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              order.total.toStringAsFixed(2),
+                              PriceFormatter.format(order.total),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
@@ -804,20 +805,20 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                     children: [
                       _buildDetailRow(
                         'Sous-total:',
-                        '${order.subtotal.toStringAsFixed(2)}€',
+                        PriceFormatter.format(order.subtotal),
                         Icons.receipt,
                       ),
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         'Livraison:',
-                        '${order.deliveryFee.toStringAsFixed(2)}€',
+                        PriceFormatter.format(order.deliveryFee),
                         Icons.local_shipping,
                       ),
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         'Total:',
-                        '${order.total.toStringAsFixed(2)}€',
-                        Icons.euro,
+                        PriceFormatter.format(order.total),
+                        Icons.monetization_on,
                         isBold: true,
                       ),
                     ],
@@ -950,7 +951,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${item.unitPrice.toStringAsFixed(2)}€ × ${item.quantity}',
+                                '${PriceFormatter.format(item.unitPrice)} × ${item.quantity}',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.6),
                                   fontSize: 14,
@@ -963,7 +964,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                         const SizedBox(width: 12),
                         Flexible(
                           child: Text(
-                            '${item.totalPrice.toStringAsFixed(2)}€',
+                            PriceFormatter.format(item.totalPrice),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -1693,7 +1694,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Montant total: ${order.total.toStringAsFixed(2)}€',
+              'Montant total: ${PriceFormatter.format(order.total)}',
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
@@ -1702,7 +1703,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
             ListTile(
               leading: const Icon(Icons.refresh, color: Colors.orange),
               title: const Text('Remboursement total'),
-              subtitle: Text('${order.total.toStringAsFixed(2)}€'),
+              subtitle: Text(PriceFormatter.format(order.total)),
               onTap: () => Navigator.of(dialogContext).pop('total'),
             ),
             ListTile(
@@ -1740,9 +1741,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
             controller: amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
-              labelText: 'Montant (€)',
+              labelText: 'Montant (CFA)',
               border: OutlineInputBorder(),
-              prefixText: '€ ',
+              prefixText: '',
+              suffixText: ' CFA',
             ),
           ),
           actions: [
@@ -1789,7 +1791,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '✅ Remboursement de ${refundAmount.toStringAsFixed(2)}€ effectué',
+            '✅ Remboursement de ${PriceFormatter.format(refundAmount)} effectué',
           ),
           backgroundColor: Colors.green,
         ),
@@ -1847,23 +1849,23 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                           const Divider(height: 24),
                           _buildDetailRow(
                             'Total',
-                            '${order.total.toStringAsFixed(2)}€',
-                            Icons.euro,
+                            PriceFormatter.format(order.total),
+                            Icons.monetization_on,
                           ),
                           _buildDetailRow(
                             'Sous-total',
-                            '${order.subtotal.toStringAsFixed(2)}€',
+                            PriceFormatter.format(order.subtotal),
                             Icons.receipt,
                           ),
                           _buildDetailRow(
                             'Frais de livraison',
-                            '${order.deliveryFee.toStringAsFixed(2)}€',
+                            PriceFormatter.format(order.deliveryFee),
                             Icons.local_shipping,
                           ),
                           if (order.discount > 0)
                             _buildDetailRow(
                               'Réduction',
-                              '-${order.discount.toStringAsFixed(2)}€',
+                              '-${PriceFormatter.format(order.discount)}',
                               Icons.discount,
                             ),
                           _buildDetailRow(
@@ -1934,7 +1936,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${item.unitPrice.toStringAsFixed(2)}€ × ${item.quantity} = ${item.totalPrice.toStringAsFixed(2)}€',
+                                      '${PriceFormatter.format(item.unitPrice)} × ${item.quantity} = ${PriceFormatter.format(item.totalPrice)}',
                                     ),
                                     if (customizations.isNotEmpty || (item.notes != null && item.notes!.isNotEmpty))
                                       const SizedBox(height: 4),
@@ -1950,7 +1952,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
                                   ],
                                 ),
                                 trailing: Text(
-                                  '${item.totalPrice.toStringAsFixed(2)}€',
+                                  PriceFormatter.format(item.totalPrice),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -2340,7 +2342,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
               clientName.replaceAll(',', ';'),
               order.deliveryAddress.replaceAll(',', ';'),
               order.status.displayName,
-              order.total.toStringAsFixed(2),
+              PriceFormatter.format(order.total).replaceAll(' ', ''), // Remove spaces for CSV
               order.items.length,
             ].join(','),
           );
@@ -2353,7 +2355,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen>
               'Inconnu',
               order.deliveryAddress.replaceAll(',', ';'),
               order.status.displayName,
-              order.total.toStringAsFixed(2),
+              PriceFormatter.format(order.total).replaceAll(' ', ''), // Remove spaces for CSV
               order.items.length,
             ].join(','),
           );

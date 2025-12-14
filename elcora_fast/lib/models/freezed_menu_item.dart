@@ -1,9 +1,8 @@
-// import 'package:freezed_annotation/freezed_annotation.dart'; // TODO: Décommenter après génération
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:elcora_fast/models/menu_category.dart';
 
-// TODO: Générer les fichiers avec: flutter pub run build_runner build --delete-conflicting-outputs
-// part 'freezed_menu_item.freezed.dart';
-// part 'freezed_menu_item.g.dart';
+part 'freezed_menu_item.freezed.dart';
+part 'freezed_menu_item.g.dart';
 
 /// Exemple de modèle MenuItem avec Freezed
 ///
@@ -11,50 +10,32 @@ import 'package:elcora_fast/models/menu_category.dart';
 /// ```bash
 /// flutter pub run build_runner build --delete-conflicting-outputs
 /// ```
-// TODO: Décommenter après génération des fichiers
-// @freezed
-class FreezedMenuItem /* with _$FreezedMenuItem */ {
-  final String id;
-  final String name;
-  final String description;
-  final double price;
-  final String categoryId;
-  final MenuCategory? category;
-  final String? imageUrl;
-  final bool isPopular;
-  final bool isVegetarian;
-  final bool isVegan;
-  final bool isAvailable;
-  final int availableQuantity;
-  final List<String> ingredients;
-  final int calories;
-  final int preparationTime;
-  final double rating;
-  final int reviewCount;
+@freezed
+class FreezedMenuItem with _$FreezedMenuItem {
+  const FreezedMenuItem._();
 
-  const FreezedMenuItem({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.categoryId,
-    this.category,
-    this.imageUrl,
-    this.isPopular = false,
-    this.isVegetarian = false,
-    this.isVegan = false,
-    this.isAvailable = true,
-    this.availableQuantity = 100,
-    this.ingredients = const [],
-    this.calories = 0,
-    this.preparationTime = 15,
-    this.rating = 0.0,
-    this.reviewCount = 0,
-  }); // = _FreezedMenuItem;
+  const factory FreezedMenuItem({
+    required String id,
+    required String name,
+    required String description,
+    required double price,
+    required String categoryId,
+    MenuCategory? category,
+    String? imageUrl,
+    @Default(false) bool isPopular,
+    @Default(false) bool isVegetarian,
+    @Default(false) bool isVegan,
+    @Default(true) bool isAvailable,
+    @Default(100) int availableQuantity,
+    @Default([]) List<String> ingredients,
+    @Default(0) int calories,
+    @Default(15) int preparationTime,
+    @Default(0.0) double rating,
+    @Default(0) int reviewCount,
+  }) = _FreezedMenuItem;
 
-  // TODO: Décommenter après génération
-  // factory FreezedMenuItem.fromJson(Map<String, dynamic> json) =>
-  //     _$FreezedMenuItemFromJson(json);
+  factory FreezedMenuItem.fromJson(Map<String, dynamic> json) =>
+      _$FreezedMenuItemFromJson(json);
 
   /// Factory pour créer depuis un Map (compatibilité avec l'ancien code)
   factory FreezedMenuItem.fromMap(Map<String, dynamic> map) {

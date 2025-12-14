@@ -18,16 +18,6 @@ class _MarketingScreenState extends State<MarketingScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    // IMPORTANT: Écouter les changements d'onglet pour mettre à jour le switch
-    _tabController.addListener(() {
-      if (!mounted) return;
-      // Reporter setState après le build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-    });
   }
 
   @override
@@ -64,17 +54,14 @@ class _MarketingScreenState extends State<MarketingScreen>
             return const Center(child: CircularProgressIndicator());
           }
 
-          // IMPORTANT: Construire seulement l'onglet visible pour éviter les problèmes de hit testing
-          switch (_tabController.index) {
-            case 0:
-              return SizedBox.expand(child: _CampaignsTab());
-            case 1:
-              return SizedBox.expand(child: _AnalyticsTab());
-            case 2:
-              return SizedBox.expand(child: _CustomersTab());
-            default:
-              return SizedBox.expand(child: _CampaignsTab());
-          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _CampaignsTab(),
+              _AnalyticsTab(),
+              _CustomersTab(),
+            ],
+          );
         },
       ),
     );

@@ -77,7 +77,8 @@ class SmartNotificationService extends ChangeNotifier {
       );
 
       debugPrint(
-          '✅ Notification personnalisée envoyée: ${notificationContent['title']}',);
+        '✅ Notification personnalisée envoyée: ${notificationContent['title']}',
+      );
     } catch (e) {
       debugPrint('❌ Erreur lors de l\'envoi de notification personnalisée: $e');
     }
@@ -150,7 +151,8 @@ class SmartNotificationService extends ChangeNotifier {
           });
         } else {
           title = '⭐ Nouveaux articles disponibles !';
-          body = 'Découvrez nos nouveaux plats ajoutés spécialement pour vous !';
+          body =
+              'Découvrez nos nouveaux plats ajoutés spécialement pour vous !';
           payload = jsonEncode({
             'type': 'new_items',
             'userId': userId,
@@ -254,7 +256,8 @@ class SmartNotificationService extends ChangeNotifier {
       // Analyser les favoris pour déterminer les catégories préférées
       final favoriteCategories = <String>[];
       for (final favorite in favoritesService.favorites) {
-        if (favorite.categoryId.isNotEmpty && !favoriteCategories.contains(favorite.categoryId)) {
+        if (favorite.categoryId.isNotEmpty &&
+            !favoriteCategories.contains(favorite.categoryId)) {
           favoriteCategories.add(favorite.categoryId);
         }
       }
@@ -262,8 +265,11 @@ class SmartNotificationService extends ChangeNotifier {
       return {
         'loyaltyPoints': currentUser.loyaltyPoints,
         'favoriteCategories': favoriteCategories,
-        'preferredDeliveryTime': null, // TODO: Ajouter si disponible
-        'dietaryRestrictions': [], // TODO: Ajouter si disponible
+        // TODO: Update User model to include these preferences
+        // Currently these fields are not supported in the User model.
+        // Consideration: Add 'preferences' JSONB column to user table.
+        'preferredDeliveryTime': null,
+        'dietaryRestrictions': [],
       };
     } catch (e) {
       debugPrint('❌ Erreur lors de la récupération des préférences: $e');
@@ -286,7 +292,9 @@ class SmartNotificationService extends ChangeNotifier {
 
   /// Détermine la catégorie préférée de l'utilisateur
   String? _getFavoriteCategory(
-      List<Order> userHistory, Map<String, dynamic> preferences,) {
+    List<Order> userHistory,
+    Map<String, dynamic> preferences,
+  ) {
     // Priorité aux préférences explicites
     final favoriteCategories =
         preferences['favoriteCategories'] as List<String>?;
@@ -363,7 +371,9 @@ class SmartNotificationService extends ChangeNotifier {
 
   /// Obtient l'article favori de l'utilisateur
   Future<MenuItem?> _getFavoriteItem(
-      String userId, Map<String, dynamic> preferences,) async {
+    String userId,
+    Map<String, dynamic> preferences,
+  ) async {
     try {
       // Utiliser FavoritesService pour obtenir les favoris
       final favoritesService = FavoritesService();
@@ -452,4 +462,3 @@ class SmartNotificationService extends ChangeNotifier {
     }
   }
 }
-

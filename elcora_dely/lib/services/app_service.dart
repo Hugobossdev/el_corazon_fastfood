@@ -667,25 +667,14 @@ class AppService extends ChangeNotifier {
       previousOrder = order;
       _orders[orderIndex] = order.copyWith(
         deliveryPersonId: _currentUser!.id,
-        status: OrderStatus
-            .confirmed, // Use confirmed as accepted (since OrderStatus doesn't have 'accepted')
+        status: OrderStatus.confirmed,
       );
       notifyListeners();
 
-      // Update in database: set status to 'confirmed' (which represents accepted in our workflow)
-      // and update active_deliveries to 'accepted'
-      await _databaseService
-          .updateOrderStatus(
-            orderId,
-            'confirmed', // This represents 'accepted' in the workflow
-            deliveryPersonId: _currentUser!.id,
-          )
-          .timeout(const Duration(seconds: 10));
-
-      // Update active_deliveries to 'accepted' status
-      await _databaseService.updateActiveDeliveryStatus(
-        orderId: orderId,
-        status: 'accepted',
+      // Utiliser la méthode sécurisée pour assigner la commande
+      await _databaseService.assignOrderToDriver(
+        orderId,
+        _currentUser!.id,
       );
 
       debugPrint('✅ Delivery accepted: $orderId');
@@ -1037,10 +1026,11 @@ class AppService extends ChangeNotifier {
 
       try {
         // Upload avec progression et gestion d'erreurs améliorée
+        // Utiliser l'ID utilisateur comme dossier racine pour respecter les politiques RLS
         profilePhotoUrl = await storageService.uploadFile(
           file: profilePhoto,
           bucketName: 'driver-documents',
-          folder: 'profiles',
+          folder: '${currentAuthUser.id}/profiles',
           onProgress: (progress) {
             debugPrint(
               'Upload photo profil: ${(progress * 100).toStringAsFixed(0)}%',
@@ -1051,7 +1041,7 @@ class AppService extends ChangeNotifier {
         licensePhotoUrl = await storageService.uploadFile(
           file: licensePhoto,
           bucketName: 'driver-documents',
-          folder: 'licenses',
+          folder: '${currentAuthUser.id}/licenses',
           onProgress: (progress) {
             debugPrint(
               'Upload permis: ${(progress * 100).toStringAsFixed(0)}%',
@@ -1062,7 +1052,7 @@ class AppService extends ChangeNotifier {
         idCardPhotoUrl = await storageService.uploadFile(
           file: idCardPhoto,
           bucketName: 'driver-documents',
-          folder: 'id-cards',
+          folder: '${currentAuthUser.id}/id-cards',
           onProgress: (progress) {
             debugPrint(
               'Upload carte identité: ${(progress * 100).toStringAsFixed(0)}%',
@@ -1073,7 +1063,7 @@ class AppService extends ChangeNotifier {
         vehiclePhotoUrl = await storageService.uploadFile(
           file: vehiclePhoto,
           bucketName: 'driver-documents',
-          folder: 'vehicles',
+          folder: '${currentAuthUser.id}/vehicles',
           onProgress: (progress) {
             debugPrint(
               'Upload véhicule: ${(progress * 100).toStringAsFixed(0)}%',

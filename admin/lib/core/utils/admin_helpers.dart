@@ -19,12 +19,13 @@ class AdminHelpers {
     return '${formatter.format(amount)} $symbol';
   }
 
-  /// Formate un montant en euros
-  static String formatEuro(double amount) {
+  /// Formate un montant en CFA
+  static String formatPrice(double amount) {
     final formatter = NumberFormat.currency(
-      symbol: '€',
-      decimalDigits: 2,
+      symbol: 'CFA',
+      decimalDigits: 0,
       locale: 'fr_FR',
+      customPattern: '#,### \u00A4',
     );
     return formatter.format(amount);
   }

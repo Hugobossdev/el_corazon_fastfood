@@ -7,6 +7,7 @@ import '../../models/order.dart';
 import '../../models/driver.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
+import '../../utils/price_formatter.dart';
 
 enum OrderSortOption {
   dateAsc,
@@ -445,14 +446,14 @@ class _AdvancedOrderManagementScreenState
         _buildStatCard(
           context,
           'Revenus totaux',
-          '${(stats['total_revenue'] as num?)?.toDouble() ?? 0.0}€',
-          Icons.euro,
+          PriceFormatter.format((stats['total_revenue'] as num?)?.toDouble() ?? 0.0),
+          Icons.monetization_on,
           Colors.teal,
         ),
         _buildStatCard(
           context,
           'Panier moyen',
-          '${(stats['average_order_value'] as num?)?.toDouble() ?? 0.0}€',
+          PriceFormatter.format((stats['average_order_value'] as num?)?.toDouble() ?? 0.0),
           Icons.shopping_cart,
           Colors.indigo,
         ),
@@ -682,9 +683,9 @@ class _AdvancedOrderManagementScreenState
                 context, 'Annulées', '${stats['cancelled_orders'] ?? 0}'),
             const Divider(),
             _buildStatRow(context, 'Revenus totaux',
-                '${(stats['total_revenue'] as num?)?.toDouble() ?? 0.0}€'),
+                PriceFormatter.format((stats['total_revenue'] as num?)?.toDouble() ?? 0.0)),
             _buildStatRow(context, 'Panier moyen',
-                '${(stats['average_order_value'] as num?)?.toDouble() ?? 0.0}€'),
+                PriceFormatter.format((stats['average_order_value'] as num?)?.toDouble() ?? 0.0)),
           ],
         ),
       ),
@@ -921,7 +922,7 @@ class _AdvancedOrderManagementScreenState
                 ),
                 const Spacer(),
                 Text(
-                  '${order.total.toStringAsFixed(2)}€',
+                  PriceFormatter.format(order.total),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary,
@@ -1007,7 +1008,7 @@ class _AdvancedOrderManagementScreenState
                                 ),
                               ),
                               Text(
-                                '${item.totalPrice.toStringAsFixed(2)}€',
+                                PriceFormatter.format(item.totalPrice),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -1144,7 +1145,7 @@ class _AdvancedOrderManagementScreenState
       ),
       title: Text('Commande #${order.id.substring(0, 8).toUpperCase()}'),
       subtitle: Text(
-          '${order.status.displayName} • ${order.total.toStringAsFixed(2)}€'),
+          '${order.status.displayName} • ${PriceFormatter.format(order.total)}'),
       trailing: Text(_formatTime(order.orderTime)),
       onTap: () => _showOrderDetails(order),
     );
@@ -1435,7 +1436,7 @@ class _AdvancedOrderManagementScreenState
                             _buildDetailRow('Statut', order.status.displayName),
                             const SizedBox(height: 4),
                             _buildDetailRow(
-                                'Total', '${order.total.toStringAsFixed(2)}€'),
+                                'Total', PriceFormatter.format(order.total)),
                             const SizedBox(height: 4),
                             _buildDetailRow('Articles',
                                 '${order.items.length} article${order.items.length > 1 ? 's' : ''}'),
@@ -1519,7 +1520,7 @@ class _AdvancedOrderManagementScreenState
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            '${item.quantity}x ${item.unitPrice.toStringAsFixed(2)}€ = ${item.totalPrice.toStringAsFixed(2)}€',
+                                            '${item.quantity}x ${PriceFormatter.format(item.unitPrice)} = ${PriceFormatter.format(item.totalPrice)}',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey[600],
@@ -1567,7 +1568,7 @@ class _AdvancedOrderManagementScreenState
                                     ),
                                     // Prix total
                                     Text(
-                                      '${item.totalPrice.toStringAsFixed(2)}€',
+                                      PriceFormatter.format(item.totalPrice),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
@@ -1839,7 +1840,7 @@ class _AdvancedOrderManagementScreenState
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Total: ${order.total.toStringAsFixed(2)}€',
+                                'Total: ${PriceFormatter.format(order.total)}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[700],

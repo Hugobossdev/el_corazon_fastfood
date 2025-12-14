@@ -115,12 +115,12 @@ class PullToRefreshWrapper extends StatelessWidget {
   }
 }
 
-class ErrorWidget extends StatelessWidget {
+class AppErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
   final IconData? icon;
 
-  const ErrorWidget({
+  const AppErrorWidget({
     super.key,
     required this.message,
     this.onRetry,

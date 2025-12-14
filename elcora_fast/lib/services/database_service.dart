@@ -1070,6 +1070,13 @@ class DatabaseService {
       } else if ((match.amount - participant.amount).abs() > 0.01) {
         updates.add({
           'id': match.id,
+          'group_payment_id': groupPaymentId,
+          'user_id': userDbId ?? match.userId,
+          'name': participant.name,
+          'email': participant.email,
+          'phone': participant.phoneNumber,
+          'operator': participant.operator,
+          'status': _serializeParticipantStatus(match.status),
           'amount': participant.amount,
           'updated_at': DateTime.now().toIso8601String(),
         });

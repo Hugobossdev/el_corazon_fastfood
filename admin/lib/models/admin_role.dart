@@ -215,6 +215,9 @@ class AdminRole {
         return AdminPermissionType.analyticsRead;
       case 'promotions':
         return AdminPermissionType.promotionRead;
+      case 'marketing':
+      case 'campaigns':
+        return AdminPermissionType.marketingCampaignRead;
       case 'settings':
         return AdminPermissionType.settingsRead;
       default:
@@ -268,7 +271,8 @@ class AdminPermission {
         // Essayer de trouver le type correspondant
         permissionType = AdminPermissionType.values.firstWhere(
           (e) => e.toString().split('.').last == typeString ||
-                e.name == typeString,
+                e.name == typeString ||
+                e.toString() == typeString,
           orElse: () => AdminPermissionType.productRead,
         );
       } catch (e) {
@@ -289,7 +293,7 @@ class AdminPermission {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'type': type.toString(),
+      'type': type.name, // Use simple name instead of toString()
       'resource': resource,
       'action': action,
       'is_granted': isGranted,
@@ -368,6 +372,12 @@ enum AdminPermissionType {
   // Audit et logs
   auditRead('Lire les logs d\'audit'),
 
+  // Marketing
+  marketingCampaignCreate('Créer des campagnes'),
+  marketingCampaignRead('Lire les campagnes'),
+  marketingCampaignUpdate('Modifier les campagnes'),
+  marketingCampaignDelete('Supprimer les campagnes'),
+
   // Super admin
   superAdmin('Accès super administrateur');
 
@@ -445,6 +455,28 @@ class PredefinedAdminRoles {
             type: AdminPermissionType.reportsGenerate,
             resource: 'reports',
             action: 'generate',
+            isGranted: true,
+          ),
+          // Marketing
+          const AdminPermission(
+            id: 'manager_marketing',
+            type: AdminPermissionType.marketingCampaignRead,
+            resource: 'marketing',
+            action: 'read',
+            isGranted: true,
+          ),
+          const AdminPermission(
+            id: 'manager_marketing_create',
+            type: AdminPermissionType.marketingCampaignCreate,
+            resource: 'marketing',
+            action: 'create',
+            isGranted: true,
+          ),
+          const AdminPermission(
+            id: 'manager_marketing_update',
+            type: AdminPermissionType.marketingCampaignUpdate,
+            resource: 'marketing',
+            action: 'update',
             isGranted: true,
           ),
         ],

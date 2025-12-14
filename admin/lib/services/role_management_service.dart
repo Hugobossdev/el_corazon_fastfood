@@ -96,6 +96,7 @@ class RoleManagementService extends ChangeNotifier {
           'manage_drivers': true,
           'view_analytics': true,
           'manage_promotions': true,
+          'manage_marketing': true,
           'manage_settings': true,
         },
         'is_default': true,
@@ -111,6 +112,7 @@ class RoleManagementService extends ChangeNotifier {
           'manage_drivers': true,
           'view_analytics': true,
           'manage_promotions': true,
+          'manage_marketing': true,
           'manage_settings': false,
         },
         'is_default': true,
@@ -199,6 +201,20 @@ class RoleManagementService extends ChangeNotifier {
             type: AdminPermissionType.analyticsRead,
             resource: 'analytics',
             action: 'read',
+            isGranted: true,
+          ),
+          const AdminPermission(
+            id: 'manager_marketing',
+            type: AdminPermissionType.marketingCampaignRead,
+            resource: 'marketing',
+            action: 'read',
+            isGranted: true,
+          ),
+          const AdminPermission(
+            id: 'manager_marketing_create',
+            type: AdminPermissionType.marketingCampaignCreate,
+            resource: 'marketing',
+            action: 'create',
             isGranted: true,
           ),
         ],
@@ -356,18 +372,26 @@ class RoleManagementService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // 1. Mettre à jour la table de liaison
+      // D'abord supprimer les rôles existants pour cet utilisateur (si on veut un seul rôle)
       await Supabase.instance.client
-          .from('users')
-          .update({'role_id': roleId}).eq('id', userId);
+          .from('user_admin_roles')
+          .delete()
+          .eq('user_id', userId);
 
+      // Insérer le nouveau rôle
+      await Supabase.instance.client.from('user_admin_roles').insert({
+        'user_id': userId,
+        'role_id': roleId,
+        'is_active': true,
+      });
+
+      // 2. Mettre à jour le rôle dans la table users pour compatibilité
+      // Récupérer le nom du rôle pour mettre à jour le champ texte 'role' si nécessaire
+      // (ici on laisse 'admin' dans users.role, c'est géré ailleurs)
+      
       // Mettre à jour la liste locale
-      final userIndex = _users.indexWhere((user) => user.id == userId);
-      if (userIndex != -1) {
-        // Note: Le modèle User actuel ne supporte pas la modification du rôle via copyWith
-        // Cette fonctionnalité nécessiterait une modification du modèle User
-        debugPrint(
-            'RoleManagementService: Attribution de rôle non supportée avec le modèle User actuel');
-      }
+      // ...
 
       _isLoading = false;
       notifyListeners();

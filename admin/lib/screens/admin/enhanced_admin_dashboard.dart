@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/app_service.dart';
@@ -32,9 +33,11 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
 
   Future<void> _checkDocumentExpirations() async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       try {
         final service = context.read<DriverDocumentService>();
         await service.checkUpcomingExpirations();
+        if (!mounted) return;
         await service.checkExpiredDocuments();
       } catch (e) {
         debugPrint('Error checking document expirations: $e');
@@ -407,7 +410,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               _buildMetricCard(
                 context,
                 'Revenus du jour',
-                AdminHelpers.formatEuro(todayRevenue),
+                AdminHelpers.formatPrice(todayRevenue),
                 Icons.euro,
                 Colors.green,
                 '+12.5%',
@@ -431,7 +434,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               _buildMetricCard(
                 context,
                 'Panier moyen',
-                AdminHelpers.formatEuro(
+                AdminHelpers.formatPrice(
                   _calculateAverageOrderValue(totalOrders, todayRevenue),
                 ),
                 Icons.shopping_cart,
@@ -631,7 +634,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
                   title: Text(item['name']),
                   subtitle: Text('${item['quantity']} vendus'),
                   trailing: Text(
-                    '${item['revenue'].toStringAsFixed(2)}€',
+                    AdminHelpers.formatPrice(item['revenue']),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -687,7 +690,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      AdminHelpers.formatEuro(order.total),
+                      AdminHelpers.formatPrice(order.total),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -707,17 +710,77 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
 
   // Placeholder methods for charts and analytics
   Widget _buildRevenueChart(BuildContext context, List<Order> orders) {
-    // Generate some mock data based on real orders if possible, or just mock data
-    // Group orders by hour/day
-    final spots = <FlSpot>[
-      const FlSpot(0, 100),
-      const FlSpot(1, 150),
-      const FlSpot(2, 80),
-      const FlSpot(3, 200),
-      const FlSpot(4, 180),
-      const FlSpot(5, 250),
-      const FlSpot(6, 300),
-    ];
+    final filteredOrders = _filterOrdersByRange(orders, _selectedTimeRange);
+    final List<FlSpot> spots = [];
+    double maxRevenue = 0;
+    
+    // Group data based on time range
+    if (_selectedTimeRange == 'today') {
+      // Group by hour (0-23)
+      final Map<int, double> hourlyRevenue = {};
+      for (var i = 0; i < 24; i++) hourlyRevenue[i] = 0;
+      
+      for (var order in filteredOrders) {
+        hourlyRevenue[order.orderTime.hour] = 
+            (hourlyRevenue[order.orderTime.hour] ?? 0) + order.total;
+      }
+      
+      hourlyRevenue.forEach((hour, revenue) {
+        spots.add(FlSpot(hour.toDouble(), revenue));
+        if (revenue > maxRevenue) maxRevenue = revenue;
+      });
+    } else if (_selectedTimeRange == 'year') {
+      // Group by month (1-12)
+      final Map<int, double> monthlyRevenue = {};
+      for (var i = 1; i <= 12; i++) monthlyRevenue[i] = 0;
+      
+      for (var order in filteredOrders) {
+        monthlyRevenue[order.orderTime.month] = 
+            (monthlyRevenue[order.orderTime.month] ?? 0) + order.total;
+      }
+      
+      monthlyRevenue.forEach((month, revenue) {
+        spots.add(FlSpot(month.toDouble(), revenue));
+        if (revenue > maxRevenue) maxRevenue = revenue;
+      });
+    } else {
+      // Group by day of month (1-31)
+      final Map<int, double> dailyRevenue = {};
+      // Initialize based on range?? For simplicity, just use day of month
+      // For week, we might want day of week, but let's stick to day of month for consistency
+      // Actually for week it's better to show Mon, Tue... 
+      // Let's stick to day of month index for now or 0-6 for week?
+      
+      for (var order in filteredOrders) {
+        int key;
+        if (_selectedTimeRange == 'week') {
+          key = order.orderTime.weekday; // 1=Mon, 7=Sun
+        } else {
+          key = order.orderTime.day;
+        }
+        dailyRevenue[key] = (dailyRevenue[key] ?? 0) + order.total;
+      }
+      
+      // Fill gaps if needed or just plot existing
+       // For week, fill 1-7
+      if (_selectedTimeRange == 'week') {
+        for (var i = 1; i <= 7; i++) {
+           double revenue = dailyRevenue[i] ?? 0;
+           spots.add(FlSpot(i.toDouble(), revenue));
+           if (revenue > maxRevenue) maxRevenue = revenue;
+        }
+      } else {
+         // Month
+         final daysInMonth = DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month);
+         for (var i = 1; i <= daysInMonth; i++) {
+            double revenue = dailyRevenue[i] ?? 0;
+            spots.add(FlSpot(i.toDouble(), revenue));
+            if (revenue > maxRevenue) maxRevenue = revenue;
+         }
+      }
+    }
+
+    if (maxRevenue == 0) maxRevenue = 100; // Prevent flat line at bottom with 0 height
 
     return Card(
       child: Padding(
@@ -735,13 +798,42 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               child: LineChart(
                 LineChartData(
                   gridData: const FlGridData(show: true),
-                  titlesData: const FlTitlesData(
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true, 
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          return Text(AdminHelpers.formatPrice(value).replaceAll('CFA', '').trim(), style: const TextStyle(fontSize: 10));
+                        },
+                      )
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: _selectedTimeRange == 'today' ? 4 : 1,
+                        getTitlesWidget: (value, meta) {
+                          if (_selectedTimeRange == 'today') {
+                            return Text('${value.toInt()}h', style: const TextStyle(fontSize: 10));
+                          } else if (_selectedTimeRange == 'week') {
+                            const days = ['', 'L', 'M', 'M', 'J', 'V', 'S', 'D'];
+                            if (value >= 1 && value <= 7) return Text(days[value.toInt()], style: const TextStyle(fontSize: 10));
+                          } else if (_selectedTimeRange == 'year') {
+                             const months = ['', 'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+                             if (value >= 1 && value <= 12) return Text(months[value.toInt()], style: const TextStyle(fontSize: 10));
+                          }
+                          return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
+                        },
+                      )
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(show: true),
+                  borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.withOpacity(0.2))),
+                  minX: _selectedTimeRange == 'today' ? 0 : 1,
+                  maxX: _selectedTimeRange == 'today' ? 23 : (_selectedTimeRange == 'week' ? 7 : (_selectedTimeRange == 'year' ? 12 : 31)),
+                  minY: 0,
+                  maxY: maxRevenue * 1.2,
                   lineBarsData: [
                     LineChartBarData(
                       spots: spots,
@@ -762,15 +854,59 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   Widget _buildOrdersChart(BuildContext context, List<Order> orders) {
-     final barGroups = [
-      BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 5, color: Colors.blue)]),
-      BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 8, color: Colors.blue)]),
-      BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 6, color: Colors.blue)]),
-      BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 10, color: Colors.blue)]),
-      BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 7, color: Colors.blue)]),
-      BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 12, color: Colors.blue)]),
-      BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 9, color: Colors.blue)]),
-    ];
+    final filteredOrders = _filterOrdersByRange(orders, _selectedTimeRange);
+    final List<BarChartGroupData> barGroups = [];
+    double maxOrders = 0;
+
+    if (_selectedTimeRange == 'today') {
+      final Map<int, int> hourlyOrders = {};
+      for (var i = 0; i < 24; i++) hourlyOrders[i] = 0;
+      for (var order in filteredOrders) {
+        hourlyOrders[order.orderTime.hour] = (hourlyOrders[order.orderTime.hour] ?? 0) + 1;
+      }
+      hourlyOrders.forEach((hour, count) {
+        barGroups.add(BarChartGroupData(x: hour, barRods: [BarChartRodData(toY: count.toDouble(), color: Colors.blue)]));
+        if (count > maxOrders) maxOrders = count.toDouble();
+      });
+    } else if (_selectedTimeRange == 'year') {
+      final Map<int, int> monthlyOrders = {};
+      for (var i = 1; i <= 12; i++) monthlyOrders[i] = 0;
+      for (var order in filteredOrders) {
+        monthlyOrders[order.orderTime.month] = (monthlyOrders[order.orderTime.month] ?? 0) + 1;
+      }
+      monthlyOrders.forEach((month, count) {
+        barGroups.add(BarChartGroupData(x: month, barRods: [BarChartRodData(toY: count.toDouble(), color: Colors.blue)]));
+        if (count > maxOrders) maxOrders = count.toDouble();
+      });
+    } else {
+      final Map<int, int> dailyOrders = {};
+      for (var order in filteredOrders) {
+        int key;
+        if (_selectedTimeRange == 'week') {
+          key = order.orderTime.weekday;
+        } else {
+          key = order.orderTime.day;
+        }
+        dailyOrders[key] = (dailyOrders[key] ?? 0) + 1;
+      }
+      
+      if (_selectedTimeRange == 'week') {
+        for (var i = 1; i <= 7; i++) {
+           int count = dailyOrders[i] ?? 0;
+           barGroups.add(BarChartGroupData(x: i, barRods: [BarChartRodData(toY: count.toDouble(), color: Colors.blue)]));
+           if (count > maxOrders) maxOrders = count.toDouble();
+        }
+      } else {
+         final daysInMonth = DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month);
+         for (var i = 1; i <= daysInMonth; i++) {
+            int count = dailyOrders[i] ?? 0;
+            barGroups.add(BarChartGroupData(x: i, barRods: [BarChartRodData(toY: count.toDouble(), color: Colors.blue)]));
+            if (count > maxOrders) maxOrders = count.toDouble();
+         }
+      }
+    }
+
+    if (maxOrders == 0) maxOrders = 10;
 
     return Card(
       child: Padding(
@@ -788,14 +924,32 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               child: BarChart(
                 BarChartData(
                   gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                     rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, interval: maxOrders > 5 ? maxOrders / 5 : 1)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          if (_selectedTimeRange == 'today') {
+                            if (value % 4 == 0) return Text('${value.toInt()}h', style: const TextStyle(fontSize: 10));
+                            return const SizedBox.shrink();
+                          } else if (_selectedTimeRange == 'week') {
+                            const days = ['', 'L', 'M', 'M', 'J', 'V', 'S', 'D'];
+                            if (value >= 1 && value <= 7) return Text(days[value.toInt()], style: const TextStyle(fontSize: 10));
+                          } else if (_selectedTimeRange == 'year') {
+                             const months = ['', 'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+                             if (value >= 1 && value <= 12) return Text(months[value.toInt()], style: const TextStyle(fontSize: 10));
+                          }
+                          return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
+                        },
+                      )
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
                   barGroups: barGroups,
+                  maxY: maxOrders * 1.2,
                 ),
               ),
             ),
@@ -846,6 +1000,18 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   Widget _buildDriverPerformance(BuildContext context, List<Order> orders) {
+    // Group orders by deliveryPersonId
+    final Map<String, int> driverOrders = {};
+    for (var order in orders) {
+      if (order.deliveryPersonId != null && 
+          (order.status == OrderStatus.delivered || order.status == OrderStatus.pickedUp)) {
+        driverOrders[order.deliveryPersonId!] = (driverOrders[order.deliveryPersonId!] ?? 0) + 1;
+      }
+    }
+    
+    final sortedDrivers = driverOrders.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -859,16 +1025,30 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+            if (sortedDrivers.isEmpty)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text('Aucune donnée de livraison'),
+              ))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: min(5, sortedDrivers.length),
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final entry = sortedDrivers[index];
+                  // Try to find driver name if we could, for now use ID
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      child: Text('${index + 1}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text('Livreur #${entry.key.substring(0, min(6, entry.key.length))}...'),
+                    trailing: Text('${entry.value} courses', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  );
+                },
               ),
-              child: const Center(
-                child: Text('Tableau des livreurs\n(À implémenter)'),
-              ),
-            ),
           ],
         ),
       ),
@@ -1010,6 +1190,43 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   Widget _buildSalesTrends(BuildContext context, List<Order> orders) {
+    // Daily revenue for last 7 days
+    final now = DateTime.now();
+    final List<BarChartGroupData> barGroups = [];
+    double maxRevenue = 0;
+    
+    for (int i = 6; i >= 0; i--) {
+      final dayStart = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final dayEnd = dayStart.add(const Duration(days: 1));
+      
+      double dailyTotal = 0;
+      for (var order in orders) {
+        if (order.status == OrderStatus.delivered && 
+            order.orderTime.isAfter(dayStart) && 
+            order.orderTime.isBefore(dayEnd)) {
+          dailyTotal += order.total;
+        }
+      }
+      
+      barGroups.add(
+        BarChartGroupData(
+          x: 6 - i, 
+          barRods: [
+            BarChartRodData(
+              toY: dailyTotal,
+              color: Theme.of(context).primaryColor,
+              width: 16,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            )
+          ]
+        )
+      );
+      
+      if (dailyTotal > maxRevenue) maxRevenue = dailyTotal;
+    }
+    
+    if (maxRevenue == 0) maxRevenue = 100;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1017,20 +1234,35 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tendances des ventes',
+              'Tendances des ventes (7 derniers jours)',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Container(
+            SizedBox(
               height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text('Graphique des tendances\n(À implémenter)'),
+              child: BarChart(
+                BarChartData(
+                  gridData: const FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (val, meta) => Text(AdminHelpers.formatPrice(val).replaceAll('CFA','').trim(), style: const TextStyle(fontSize: 10)))),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                           final date = now.subtract(Duration(days: 6 - value.toInt()));
+                           return Text('${date.day}/${date.month}', style: const TextStyle(fontSize: 10));
+                        }
+                      )
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  barGroups: barGroups,
+                  maxY: maxRevenue * 1.2,
+                ),
               ),
             ),
           ],
@@ -1044,6 +1276,23 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
     List<Order> orders,
     List<MenuItem> menuItems,
   ) {
+    final Map<String, int> itemCounts = {};
+    final Map<String, double> itemRevenue = {};
+    
+    for (var order in orders) {
+        if (order.status != OrderStatus.cancelled && order.status != OrderStatus.refunded) {
+             for (var item in order.items) {
+                 // Use menuItemId if available, otherwise name
+                 final id = item.menuItemId.isNotEmpty ? item.menuItemId : item.name;
+                 itemCounts[id] = (itemCounts[id] ?? 0) + item.quantity;
+                 itemRevenue[id] = (itemRevenue[id] ?? 0) + item.totalPrice;
+             }
+        }
+    }
+    
+    final sortedItems = itemCounts.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1057,18 +1306,41 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+            if (sortedItems.isEmpty)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text('Aucune donnée de vente'),
+              ))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: min(5, sortedItems.length),
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final entry = sortedItems[index];
+                  // Find menu item name if possible
+                  final menuItem = menuItems.cast<MenuItem?>().firstWhere(
+                    (item) => item?.id == entry.key, 
+                    orElse: () => null
+                  );
+                  final name = menuItem?.name ?? entry.key; // Fallback to ID if name not found (or if key was name)
+                  // Actually if key was name (from OrderItem.name fallback), it is the name.
+                  // But if key was ID, we look it up.
+                  // To be safe: OrderItem usually has name.
+                  
+                  // Let's improve lookup: iterate orders again? No, OrderItem has menuItemName.
+                  // But we aggregated by ID.
+                  // We can store name in another map during aggregation.
+                  
+                  return ListTile(
+                    leading: const Icon(Icons.fastfood, color: Colors.orange),
+                    title: Text(name),
+                    subtitle: Text('${entry.value} vendus'),
+                    trailing: Text(AdminHelpers.formatPrice(itemRevenue[entry.key] ?? 0)),
+                  );
+                },
               ),
-              child: const Center(
-                child: Text(
-                  'Graphique des articles populaires\n(À implémenter)',
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -1076,6 +1348,36 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   Widget _buildPeakHours(BuildContext context, List<Order> orders) {
+    final Map<int, int> hourlyOrders = {};
+    for (int i = 0; i < 24; i++) hourlyOrders[i] = 0;
+    
+    for (var order in orders) {
+      if (order.status != OrderStatus.cancelled) {
+        hourlyOrders[order.orderTime.hour] = (hourlyOrders[order.orderTime.hour] ?? 0) + 1;
+      }
+    }
+    
+    final List<BarChartGroupData> barGroups = [];
+    double maxOrders = 0;
+    
+    hourlyOrders.forEach((hour, count) {
+      barGroups.add(
+        BarChartGroupData(
+          x: hour,
+          barRods: [
+            BarChartRodData(
+              toY: count.toDouble(),
+              color: Colors.orange,
+              width: 8,
+            )
+          ]
+        )
+      );
+      if (count > maxOrders) maxOrders = count.toDouble();
+    });
+    
+    if (maxOrders == 0) maxOrders = 10;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1089,14 +1391,29 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Container(
+            SizedBox(
               height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text('Graphique des heures de pointe\n(À implémenter)'),
+              child: BarChart(
+                BarChartData(
+                  gridData: const FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, interval: maxOrders > 5 ? maxOrders / 5 : 1)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 4,
+                        getTitlesWidget: (value, meta) {
+                          return Text('${value.toInt()}h', style: const TextStyle(fontSize: 10));
+                        }
+                      )
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  barGroups: barGroups,
+                  maxY: maxOrders * 1.2,
+                ),
               ),
             ),
           ],
@@ -1106,6 +1423,19 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   Widget _buildCustomerInsights(BuildContext context, List<Order> orders) {
+    final Map<String, double> customerSpending = {};
+    final Map<String, int> customerOrders = {};
+    
+    for (var order in orders) {
+      if (order.userId.isNotEmpty && order.status == OrderStatus.delivered) {
+        customerSpending[order.userId] = (customerSpending[order.userId] ?? 0) + order.total;
+        customerOrders[order.userId] = (customerOrders[order.userId] ?? 0) + 1;
+      }
+    }
+    
+    final sortedCustomers = customerSpending.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1113,22 +1443,39 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Insights clients',
+              'Meilleurs clients',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+            if (sortedCustomers.isEmpty)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text('Aucune donnée client'),
+              ))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: min(5, sortedCustomers.length),
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final entry = sortedCustomers[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.purple.withOpacity(0.1),
+                      child: Text('${index + 1}', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text('Client #${entry.key.substring(0, min(6, entry.key.length))}...'),
+                    subtitle: Text('${customerOrders[entry.key]} commandes'),
+                    trailing: Text(
+                      AdminHelpers.formatPrice(entry.value),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  );
+                },
               ),
-              child: const Center(
-                child: Text('Analyse des clients\n(À implémenter)'),
-              ),
-            ),
           ],
         ),
       ),
@@ -1136,6 +1483,34 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   }
 
   // Helper methods
+  List<Order> _filterOrdersByRange(List<Order> orders, String range) {
+    final now = DateTime.now();
+    return orders.where((order) {
+      if (order.status == OrderStatus.cancelled || 
+          order.status == OrderStatus.refunded || 
+          order.status == OrderStatus.failed) {
+        return false;
+      }
+      
+      final date = order.orderTime;
+      switch (range) {
+        case 'today':
+          return date.year == now.year && 
+                 date.month == now.month && 
+                 date.day == now.day;
+        case 'week':
+          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          return date.isAfter(startOfWeek.subtract(const Duration(seconds: 1)));
+        case 'month':
+          return date.year == now.year && date.month == now.month;
+        case 'year':
+          return date.year == now.year;
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
   double _calculateTodayRevenue(List<Order> orders) {
     final today = DateTime.now();
     return orders
@@ -1249,7 +1624,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               children: [
                 Text('Statut: ${order.status.displayName}'),
                 const SizedBox(height: 8),
-                Text('Total: ${order.total.toStringAsFixed(2)}€'),
+                Text('Total: ${AdminHelpers.formatPrice(order.total)}'),
                 const SizedBox(height: 8),
                 Text('Articles: ${order.items.length}'),
                 const SizedBox(height: 8),

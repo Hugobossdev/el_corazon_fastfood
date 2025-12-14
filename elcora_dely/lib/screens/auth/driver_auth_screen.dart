@@ -21,7 +21,6 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isLogin = true;
   bool _obscurePassword = true;
 
   @override
@@ -64,42 +63,13 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
     }
   }
 
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final appService = Provider.of<AppService>(context, listen: false);
-
-      await appService.registerDriver(
-        _emailController.text,
-        _passwordController.text,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Inscription réussie! Vérifiez votre email.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() => _isLogin = true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur d\'inscription: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  void _navigateToRegistration() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DriverRegistrationScreen(),
+      ),
+    );
   }
 
   @override
@@ -134,7 +104,7 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _isLogin ? l10n.loginTitle : l10n.registerTitle,
+                          l10n.loginTitle,
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(color: Colors.grey[600]),
                           textAlign: TextAlign.center,
@@ -188,11 +158,9 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
                           ),
                           const SizedBox(height: 24),
                           CustomButton(
-                            text: _isLogin
-                                ? l10n.loginButton
-                                : l10n.registerButton,
-                            onPressed: _isLogin ? _login : _register,
-                            icon: _isLogin ? Icons.login : Icons.person_add,
+                            text: l10n.loginButton,
+                            onPressed: _login,
+                            icon: Icons.login,
                           ),
                         ],
                       ),
@@ -206,19 +174,13 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
-                          _isLogin
-                              ? '${l10n.noAccount} '
-                              : '${l10n.haveAccount} ',
+                          '${l10n.noAccount} ',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isLogin = !_isLogin;
-                            });
-                          },
+                          onPressed: _navigateToRegistration,
                           child: Text(
-                            _isLogin ? l10n.registerButton : l10n.loginButton,
+                            l10n.registerButton,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
@@ -231,50 +193,48 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
                     const SizedBox(height: 24),
 
                     // Driver registration link
-                    if (_isLogin) ...[
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.newDriver,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.newDriver,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const DriverRegistrationScreen(),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const DriverRegistrationScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.badge),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                l10n.completeRegistration,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                               ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.badge),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  l10n.completeRegistration,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
 
                     const SizedBox(height: 32),
 
@@ -322,3 +282,6 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> {
     );
   }
 }
+
+
+

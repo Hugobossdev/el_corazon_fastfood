@@ -200,8 +200,8 @@ class AdminAuthService extends ChangeNotifier {
                   _currentRole = AdminRole.fromMap(defaultRoleResponse);
                   // Assigner le rôle par défaut à l'utilisateur
                   final roleId = defaultRoleResponse['id']?.toString();
-                  if (roleId != null && roleId.isNotEmpty) {
-                    await _assignDefaultRole(userId, roleId);
+                  if (roleId != null && roleId.isNotEmpty && _currentAdmin != null) {
+                    await _assignDefaultRole(_currentAdmin!.id, roleId);
                   }
                 } catch (defaultRoleError) {
                   debugPrint('Error parsing default role: $defaultRoleError');
@@ -518,6 +518,7 @@ class AdminAuthService extends ChangeNotifier {
         // Créer le profil utilisateur
         await Supabase.instance.client.from('users').insert({
           'id': userId,
+          'auth_user_id': userId,
           'email': email,
           'name': name,
           'role': 'admin',
@@ -525,6 +526,7 @@ class AdminAuthService extends ChangeNotifier {
         });
 
         // Assigner le rôle
+        // Note: Ici userId est à la fois l'ID auth et l'ID public car on l'a forcé
         await assignRoleToUser(userId, roleId);
       } else {
         debugPrint('Error creating admin user: auth user is null');

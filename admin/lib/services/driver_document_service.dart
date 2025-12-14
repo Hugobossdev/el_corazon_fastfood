@@ -61,8 +61,23 @@ class DriverDocumentService extends ChangeNotifier {
     final normalized = <String, dynamic>{...data};
 
     // Mapper driver_id -> user_id attendu par le modèle
-    normalized['user_id'] =
-        data['user_id']?.toString() ?? data['driver_id']?.toString() ?? '';
+    // Si on a accès à drivers.user_id via jointure
+    if (data['drivers'] != null && data['drivers']['user_id'] != null) {
+      normalized['user_id'] = data['drivers']['user_id'].toString();
+    } else {
+      normalized['user_id'] =
+          data['user_id']?.toString() ?? data['driver_id']?.toString() ?? '';
+    }
+
+    // Extraire les infos du user si présentes (jointure profonde)
+    if (data['drivers'] != null && data['drivers']['users'] != null) {
+      final userData = data['drivers']['users'];
+      // Créer une structure temporaire pour que le modèle puisse l'extraire
+      // ou l'injecter directement dans le modèle si on met à jour le modèle
+      // Le modèle attend 'drivers' -> {name, email...}
+      // On va aplatir la structure pour matcher ce que le modèle attend (voir modification précédente du modèle)
+      normalized['drivers'] = userData;
+    }
 
     // Mapper URL de fichier
     normalized['file_url'] =
@@ -146,7 +161,7 @@ class DriverDocumentService extends ChangeNotifier {
 
       final response = await _supabase
           .from('driver_documents')
-          .select('*, drivers:driver_id(name, email, phone)')
+          .select('*, drivers:driver_id(user_id, users:user_id(name, email, phone))')
           .eq('status', 'pending');
 
       return (response as List)
@@ -172,7 +187,7 @@ class DriverDocumentService extends ChangeNotifier {
 
       final response = await _supabase
           .from('driver_documents')
-          .select('*, drivers:driver_id(name, email, phone)')
+          .select('*, drivers:driver_id(user_id, users:user_id(name, email, phone))')
           .or('status.eq.expired,expiry_date.lte.${warningDate.toIso8601String()}')
           .neq('status', 'rejected');
 
@@ -261,11 +276,61 @@ class DriverDocumentService extends ChangeNotifier {
     }
   }
 
+  /// Enregistrer l'historique des modifications
+  Future<void> _logDocumentHistory({
+    required String documentId,
+    required String driverId,
+    required String newStatus,
+    String? previousStatus,
+    String? reason,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      String? changedBy;
+      
+      // Essayer de récupérer l'ID utilisateur public de l'admin
+      if (user != null) {
+         try {
+           final adminUser = await _supabase
+               .from('users')
+               .select('id')
+               .eq('auth_user_id', user.id)
+               .maybeSingle();
+           changedBy = adminUser?['id'] as String?;
+         } catch (_) {
+           // Fallback si la table users n'est pas accessible ou structure différente
+           debugPrint('Could not fetch admin user ID for history log');
+         }
+      }
+
+      await _supabase.from('driver_document_history').insert({
+        'document_id': documentId,
+        'driver_id': driverId,
+        'previous_status': previousStatus,
+        'new_status': newStatus,
+        'changed_by': changedBy,
+        'change_reason': reason,
+        'changed_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Error logging document history: $e');
+    }
+  }
+
   /// Approuver un document
   Future<bool> approveDocument(String documentId) async {
     try {
       _isLoading = true;
       notifyListeners();
+
+      // Récupérer infos pour historique
+      final currentDoc = await _supabase
+          .from('driver_documents')
+          .select('status, driver_id')
+          .eq('id', documentId)
+          .single();
+      final previousStatus = currentDoc['status'] as String?;
+      final driverId = currentDoc['driver_id'] as String;
 
       await _supabase.from('driver_documents').update({
         'status': 'approved',
@@ -273,14 +338,16 @@ class DriverDocumentService extends ChangeNotifier {
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', documentId);
 
-      // Vérifier si tous les documents sont approuvés pour activer le compte
-      final doc = await _supabase
-          .from('driver_documents')
-          .select('driver_id')
-          .eq('id', documentId)
-          .single();
-      final driverId = doc['driver_id'] as String;
+      // Log history
+      await _logDocumentHistory(
+        documentId: documentId,
+        driverId: driverId,
+        newStatus: 'approved',
+        previousStatus: previousStatus,
+        reason: 'Document validé par l\'administrateur',
+      );
 
+      // Vérifier si tous les documents sont approuvés pour activer le compte
       await _checkAndActivateAccount(driverId);
 
       return true;
@@ -299,20 +366,31 @@ class DriverDocumentService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Récupérer infos pour historique
+      final currentDoc = await _supabase
+          .from('driver_documents')
+          .select('status, driver_id')
+          .eq('id', documentId)
+          .single();
+      final previousStatus = currentDoc['status'] as String?;
+      final driverId = currentDoc['driver_id'] as String;
+
       await _supabase.from('driver_documents').update({
         'status': 'rejected',
         'rejection_reason': reason,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', documentId);
 
-      // Désactiver le compte si un document requis est rejeté
-      final doc = await _supabase
-          .from('driver_documents')
-          .select('driver_id')
-          .eq('id', documentId)
-          .single();
-      final driverId = doc['driver_id'] as String;
+      // Log history
+      await _logDocumentHistory(
+        documentId: documentId,
+        driverId: driverId,
+        newStatus: 'rejected',
+        previousStatus: previousStatus,
+        reason: reason,
+      );
 
+      // Désactiver le compte si un document requis est rejeté
       await _deactivateAccount(driverId);
 
       // Envoyer une notification au livreur
@@ -510,8 +588,20 @@ class DriverDocumentService extends ChangeNotifier {
 
   /// Obtenir l'historique des modifications d'un document
   Future<List<DocumentHistory>> getDocumentHistory(String documentId) async {
-    // Nécessiterait une table d'audit dédiée ; pour l'instant, on retourne une liste vide
-    return [];
+    try {
+      final response = await _supabase
+          .from('driver_document_history')
+          .select('*, changed_by:users!driver_document_history_changed_by_fkey(name)')
+          .eq('document_id', documentId)
+          .order('changed_at', ascending: false);
+
+      return (response as List)
+          .map((data) => DocumentHistory.fromMap(data))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching document history: $e');
+      return [];
+    }
   }
 
   /// Vérifier les expirations à venir (tâche planifiée)

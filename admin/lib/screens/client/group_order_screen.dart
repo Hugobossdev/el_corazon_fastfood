@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../models/order.dart';
 import '../../models/menu_models.dart';
 import '../../theme.dart';
+import '../../utils/price_formatter.dart';
 
 class GroupOrderScreen extends StatefulWidget {
   const GroupOrderScreen({super.key});
@@ -225,7 +226,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${_groupMembers.length} membre(s) • Total: ${_calculateGroupTotal().toStringAsFixed(2)}€',
+                    '${_groupMembers.length} membre(s) • Total: ${PriceFormatter.format(_calculateGroupTotal())}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -422,7 +423,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                   Row(
                     children: [
                       Text(
-                        '${item.basePrice.toStringAsFixed(2)}€',
+                        PriceFormatter.format(item.basePrice),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -521,10 +522,10 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                         ),
                         title: Text(item.name),
                         subtitle: Text(
-                          '${item.unitPrice.toStringAsFixed(2)}€ × ${item.quantity}',
+                          '${PriceFormatter.format(item.unitPrice)} × ${item.quantity}',
                         ),
                         trailing: Text(
-                          '${item.totalPrice.toStringAsFixed(2)}€',
+                          PriceFormatter.format(item.totalPrice),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -561,7 +562,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen>
                           ),
                     ),
                     Text(
-                      '${_calculateGroupTotal().toStringAsFixed(2)}€',
+                      PriceFormatter.format(_calculateGroupTotal()),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,

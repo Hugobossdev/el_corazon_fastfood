@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:elcora_fast/services/location_service.dart';
 import 'package:elcora_fast/services/geocoding_service.dart';
 import 'package:elcora_fast/models/address.dart';
+import 'package:elcora_fast/config/app_constants.dart';
 
 /// Service de calcul dynamique des frais de livraison basé sur la distance
 class DeliveryFeeService extends ChangeNotifier {
@@ -11,9 +12,9 @@ class DeliveryFeeService extends ChangeNotifier {
   DeliveryFeeService._internal();
 
   // Position du restaurant (coordonnées par défaut - Lomé, Togo)
-  // TODO: Remplacer par les vraies coordonnées du restaurant
-  static const double _restaurantLatitude = 6.1375; // Lomé, Togo
-  static const double _restaurantLongitude = 1.2123;
+  // Note: Coordonnées centralisées dans AppConstants
+  static const double _restaurantLatitude = AppConstants.restaurantLatitude;
+  static const double _restaurantLongitude = AppConstants.restaurantLongitude;
 
   // Tarifs de livraison (en FCFA)
   static const double _baseFee = 500.0; // Frais de base

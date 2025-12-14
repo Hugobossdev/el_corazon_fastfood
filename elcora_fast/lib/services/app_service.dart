@@ -398,7 +398,7 @@ class AppService extends ChangeNotifier {
     try {
       final orderId = _uuid.v4();
       final subtotal = cartTotal;
-      const deliveryFee = 5.0;
+      const deliveryFee = 1000.0;
       final total = subtotal + deliveryFee;
 
       // Create order data for database
@@ -471,7 +471,7 @@ class AppService extends ChangeNotifier {
 
       // Award loyalty points for clients
       if (_currentUser?.role == UserRole.client) {
-        final pointsEarned = (total / 10).round(); // 1 point per 10€
+        final pointsEarned = (total / 100).round(); // 1 point per 100 CFA
         _currentUser = _currentUser!.copyWith(
           loyaltyPoints: _currentUser!.loyaltyPoints + pointsEarned,
         );
@@ -805,7 +805,7 @@ class AppService extends ChangeNotifier {
 
       // Award loyalty points for clients
       if (_currentUser?.role == UserRole.client) {
-        final pointsEarned = (total / 10).round(); // 1 point per 10€
+        final pointsEarned = (total / 100).round(); // 1 point per 100 CFA
         _currentUser = _currentUser!.copyWith(
           loyaltyPoints: _currentUser!.loyaltyPoints + pointsEarned,
         );
@@ -864,6 +864,95 @@ class AppService extends ChangeNotifier {
     }
   }
 
+  // Finalize an existing order (e.g. group order)
+  Future<String> finalizeExistingOrder(
+    String orderId,
+    Address? deliveryAddress,
+    PaymentMethod paymentMethod,
+    double total, {
+    String? notes,
+    String? promoCode,
+    double discount = 0.0,
+  }) async {
+    if (_currentUser == null) throw Exception('Utilisateur non connecté');
+
+    try {
+      // Valider l'adresse
+      final addressString = deliveryAddress?.fullAddress ?? '';
+      if (addressString.isEmpty) {
+        throw Exception('Adresse de livraison requise');
+      }
+
+      // Mettre à jour la commande existante
+      final updates = {
+        'status': 'pending', // Reste en pending jusqu'à confirmation du paiement si nécessaire
+        'payment_method': _paymentMethodToDbString(paymentMethod),
+        'delivery_address': addressString,
+        'delivery_notes': notes ?? '',
+        'total': total,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (promoCode != null) {
+        updates['promo_code'] = promoCode;
+        updates['discount'] = discount;
+      }
+
+      await _databaseService.updateOrder(orderId, updates);
+
+      // Traiter le paiement
+      bool paymentSuccess = false;
+      String? paymentTransactionId;
+
+      if (paymentMethod == PaymentMethod.mobileMoney) {
+        final result = await _payDunyaService.processMobileMoneyPayment(
+          orderId: orderId,
+          amount: total,
+          phoneNumber: _currentUser!.phone,
+          operator: 'mtn',
+          customerName: _currentUser!.name,
+          customerEmail: _currentUser!.email,
+        );
+        paymentSuccess = result.success;
+        paymentTransactionId = result.invoiceToken;
+      } else if (paymentMethod == PaymentMethod.cash) {
+        paymentSuccess = true;
+        paymentTransactionId = 'CASH_${DateTime.now().millisecondsSinceEpoch}';
+      } else {
+        // Autres méthodes (simulation)
+        paymentSuccess = true;
+        paymentTransactionId = 'TXN_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      if (!paymentSuccess) {
+        throw Exception('Échec du paiement. Veuillez réessayer.');
+      }
+
+      // Mettre à jour statut post-paiement
+      await _databaseService.updateOrder(orderId, {
+        'payment_status': 'completed',
+        'payment_transaction_id': paymentTransactionId,
+        'status': 'confirmed', // Confirmer la commande
+      });
+
+      // Notifications et Tracking
+      await _notificationService.showOrderConfirmationNotification(
+        orderId,
+        'Commande de groupe',
+      );
+      
+      _locationService.startDeliveryTracking(orderId);
+      
+      // Mettre à jour la liste locale des commandes
+      await _loadUserOrders();
+
+      return orderId;
+    } catch (e) {
+      debugPrint('Error finalizing existing order: $e');
+      rethrow;
+    }
+  }
+
   // Helper methods
 
   Future<void> _loadMenuItems() async {
@@ -904,6 +993,7 @@ class AppService extends ChangeNotifier {
 
       // Extraire les display names pour la compatibilité
       _menuCategoryDisplayNames = _menuCategories
+          .where((c) => c.isActive)
           .map((c) => c.displayName)
           .where((s) => s.isNotEmpty)
           .toList();

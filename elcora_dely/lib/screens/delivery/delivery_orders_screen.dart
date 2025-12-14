@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../services/geocoding_service.dart' as geo;
 import '../../services/app_service.dart';
 import '../../utils/price_formatter.dart';
 import '../../services/error_handler_service.dart';
@@ -637,6 +639,14 @@ class DeliveryDetailsSheet extends StatefulWidget {
 }
 
 class _DeliveryDetailsSheetState extends State<DeliveryDetailsSheet> {
+  late Future<geo.LatLng?> _locationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _locationFuture = geo.GeocodingService().geocodeAddress(widget.order.deliveryAddress);
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -894,42 +904,73 @@ class _DeliveryDetailsSheetState extends State<DeliveryDetailsSheet> {
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              height: 150,
+              height: 200,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey[300]!),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.map, size: 48, color: Colors.grey[600]),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Carte interactive',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Fonctionnalité à venir',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _openNavigation(),
-                icon: const Icon(Icons.navigation),
-                label: const Text('Ouvrir la navigation'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: FutureBuilder<geo.LatLng?>(
+                  future: _locationFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.location_off, size: 48, color: Colors.grey[400]),
+                            const SizedBox(height: 8),
+                            const Text('Carte indisponible', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final location = snapshot.data!;
+                    final target = LatLng(location.latitude, location.longitude);
+
+                    return Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: target,
+                            zoom: 15,
+                          ),
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId('delivery_location'),
+                              position: target,
+                              infoWindow: InfoWindow(title: widget.order.deliveryAddress),
+                            ),
+                          },
+                          liteModeEnabled: true,
+                          zoomControlsEnabled: false,
+                          scrollGesturesEnabled: false,
+                          zoomGesturesEnabled: false,
+                          rotateGesturesEnabled: false,
+                          tiltGesturesEnabled: false,
+                          myLocationButtonEnabled: false,
+                          mapToolbarEnabled: false,
+                          onTap: (_) => _openNavigation(),
+                        ),
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          child: FloatingActionButton.small(
+                            onPressed: () => _openNavigation(),
+                            child: const Icon(Icons.directions),
+                            tooltip: 'Ouvrir la navigation',
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

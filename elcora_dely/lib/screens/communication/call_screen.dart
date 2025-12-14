@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import '../../services/agora_call_service.dart';
 import '../../models/order.dart';
 import '../../services/app_service.dart';
@@ -95,7 +94,7 @@ class _CallScreenState extends State<CallScreen> {
       // Rejoindre le canal
       final success = await _agoraService.joinChannel(
         channelId: channelId,
-        callType: widget.callType,
+        callType: CallType.voice,
         uid: uid,
       );
 
@@ -179,11 +178,6 @@ class _CallScreenState extends State<CallScreen> {
                     onPressed: _endCall,
                   ),
                   const Spacer(),
-                  if (widget.callType == CallType.video)
-                    IconButton(
-                      icon: const Icon(Icons.switch_camera, color: Colors.white),
-                      onPressed: () => _agoraService.switchCamera(),
-                    ),
                 ],
               ),
             ),
@@ -248,30 +242,25 @@ class _CallScreenState extends State<CallScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Avatar ou vidéo
-        if (widget.callType == CallType.video)
-          Expanded(
-            child: _buildVideoView(),
-          )
-        else
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue[700],
-            ),
-            child: Center(
-              child: Text(
-                (widget.callerName ?? 'C').substring(0, 1).toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                ),
+        // Avatar
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.blue[700],
+          ),
+          child: Center(
+            child: Text(
+              (widget.callerName ?? 'C').substring(0, 1).toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
+        ),
 
         const SizedBox(height: 24),
         Text(
@@ -279,9 +268,9 @@ class _CallScreenState extends State<CallScreen> {
           style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(
-          widget.callType == CallType.video ? 'Appel vidéo' : 'Appel vocal',
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        const Text(
+          'Appel vocal',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         if (_remoteUid != null) ...[
           const SizedBox(height: 8),
@@ -294,57 +283,6 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _buildVideoView() {
-    return Stack(
-      children: [
-        // Vue distante (plein écran)
-        if (_remoteUid != null && _agoraService.engine != null)
-          AgoraVideoView(
-            controller: VideoViewController.remote(
-              rtcEngine: _agoraService.engine!,
-              canvas: VideoCanvas(uid: _remoteUid),
-              connection: RtcConnection(
-                channelId: _agoraService.currentChannelId ?? '',
-                localUid: _agoraService.localUid ?? 0,
-              ),
-            ),
-          )
-        else
-          Container(
-            color: Colors.black,
-            child: const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          ),
-
-        // Vue locale (petite fenêtre en haut à droite)
-        if (widget.callType == CallType.video && _agoraService.localUid != null)
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              width: 120,
-              height: 160,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: _agoraService.engine != null
-                    ? AgoraVideoView(
-                        controller: VideoViewController(
-                          rtcEngine: _agoraService.engine!,
-                          canvas: const VideoCanvas(uid: 0),
-                        ),
-                      )
-                    : Container(color: Colors.black),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 
   Widget _buildCallControls() {
     return Container(
@@ -358,14 +296,6 @@ class _CallScreenState extends State<CallScreen> {
             color: _agoraService.isMuted ? Colors.red : Colors.white,
             onPressed: () => _agoraService.toggleMute(),
           ),
-
-          // Vidéo (si appel vidéo)
-          if (widget.callType == CallType.video)
-            _buildControlButton(
-              icon: _agoraService.isVideoEnabled ? Icons.videocam : Icons.videocam_off,
-              color: _agoraService.isVideoEnabled ? Colors.white : Colors.red,
-              onPressed: () => _agoraService.toggleVideo(),
-            ),
 
           // Haut-parleur
           _buildControlButton(
@@ -409,32 +339,4 @@ class _CallScreenState extends State<CallScreen> {
   }
 }
 
-// Widget AgoraVideoView
-// Note: Dans agora_rtc_engine 6.3.2+, utilisez VideoViewWidget directement
-// Si VideoViewWidget n'est pas disponible, cette version utilise un placeholder
-// TODO: Vérifier la documentation Agora pour la bonne utilisation de VideoViewWidget
-class AgoraVideoView extends StatelessWidget {
-  final VideoViewController controller;
-
-  const AgoraVideoView({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    // Pour agora_rtc_engine 6.3.2+, VideoViewWidget devrait être importé automatiquement
-    // Si vous obtenez une erreur, vérifiez votre version d'Agora et la documentation
-    // Documentation: https://docs.agora.io/en/video-calling/get-started/get-started-sdk?platform=flutter
-    
-    // Solution temporaire: utiliser un placeholder
-    // Remplacez ceci par VideoViewWidget(controller: controller) une fois la dépendance correctement configurée
-    return Container(
-      color: Colors.black,
-      child: const Center(
-        child: Icon(Icons.videocam, color: Colors.white, size: 48),
-      ),
-    );
-    
-    // Code correct (à décommenter une fois VideoViewWidget disponible):
-    // return VideoViewWidget(controller: controller);
-  }
-}
 

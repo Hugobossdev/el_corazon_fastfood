@@ -6,6 +6,7 @@ import '../../widgets/loading_widget.dart';
 import '../../widgets/order_status_widget.dart';
 import '../../widgets/custom_button.dart';
 import '../../utils/dialog_helper.dart';
+import '../../utils/price_formatter.dart';
 
 class UpdatedOrderManagementScreen extends StatefulWidget {
   const UpdatedOrderManagementScreen({super.key});
@@ -290,7 +291,7 @@ class _UpdatedOrderManagementScreenState
         ),
         title: Text('Commande #${order.id.substring(0, 8)}'),
         subtitle: Text(
-            '${order.total.toStringAsFixed(2)}€ • ${order.orderTime.day}/${order.orderTime.month}'),
+            '${PriceFormatter.format(order.total)} • ${order.orderTime.day}/${order.orderTime.month}'),
         trailing: OrderStatusWidget(status: order.status, isCompact: true),
         onTap: () => _showOrderDetails(context, order, orderService),
       ),
@@ -343,7 +344,7 @@ class _UpdatedOrderManagementScreenState
             ),
             const SizedBox(height: 8),
             Text(
-              '${order.total.toStringAsFixed(2)}€ • ${order.items.length} article(s)',
+              '${PriceFormatter.format(order.total)} • ${order.items.length} article(s)',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -418,7 +419,7 @@ class _UpdatedOrderManagementScreenState
             children: [
               OrderStatusWidget(status: order.status),
               const SizedBox(height: 16),
-              Text('Total: ${order.total.toStringAsFixed(2)}€'),
+              Text('Total: ${PriceFormatter.format(order.total)}'),
               Text('Adresse: ${order.deliveryAddress}'),
               Text('Méthode de paiement: ${order.paymentMethod.displayName}'),
               Text(
